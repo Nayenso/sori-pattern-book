@@ -17,7 +17,7 @@
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-4xl mx-auto">
-        <a href="./index.html" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 mb-4 transition">
+        <a href="index.html" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 mb-4 transition">
             ← 메인으로 돌아가기
         </a>
 
@@ -43,6 +43,9 @@
                         <option value="asc">틀린 횟수 적은 순</option>
                     </select>
                 </label>
+                <button onclick="showDashboard()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    📊 학습 통계
+                </button>
                 <button onclick="startShadowingMode()" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
                     🎤 쉐도잉 모드
                 </button>
@@ -54,6 +57,17 @@
                 현재 상태: 전체 항목 보기
             </div>
 
+            <div id="dashboard-panel" class="hidden-text mt-5 text-left bg-cyan-50 border border-cyan-200 rounded-2xl p-5">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                    <div>
+                        <p class="text-sm font-bold text-cyan-700">📊 학습 통계 대시보드</p>
+                        <p class="text-xs text-slate-500 mt-1">현재 Unit의 틀린 횟수 기준으로 학습 상태를 보여줍니다.</p>
+                    </div>
+                    <button onclick="closeDashboard()" class="text-xs bg-slate-500 hover:bg-slate-600 text-white font-semibold py-1.5 px-3 rounded-lg transition">닫기 ✕</button>
+                </div>
+                <div id="dashboard-content"></div>
+            </div>
+
             <div id="shadowing-panel" class="hidden-text mt-5 text-left bg-purple-50 border border-purple-200 rounded-2xl p-4">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
                     <div>
@@ -61,6 +75,13 @@
                         <p id="shadowing-status" class="text-xs text-slate-500 mt-1">현재 화면의 문장들을 순서대로 듣고 따라 말합니다.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                        <label class="inline-flex items-center gap-1 text-xs bg-white border border-purple-200 text-purple-700 font-semibold py-1.5 px-2 rounded-lg">
+                            <span>모드</span>
+                            <select id="practice-mode-select" onchange="changePracticeMode(this.value)" class="bg-white border border-purple-200 rounded px-1 py-0.5 text-xs font-semibold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300">
+                                <option value="shadowing">쉐도잉</option>
+                                <option value="opic">OPIC</option>
+                            </select>
+                        </label>
                         <label class="inline-flex items-center gap-1 text-xs bg-white border border-purple-200 text-purple-700 font-semibold py-1.5 px-2 rounded-lg">
                             <span>속도</span>
                             <select id="shadowing-speed-select" onchange="changeShadowingSpeed(this.value)" class="bg-white border border-purple-200 rounded px-1 py-0.5 text-xs font-semibold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300">
@@ -74,7 +95,9 @@
                         </label>
                         <button onclick="playCurrentShadowing()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1.5 px-3 rounded-lg transition">🔊 다시 듣기</button>
                         <button onclick="nextShadowingSentence()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1.5 px-3 rounded-lg transition">다음 문장 ▶</button>
+                        <button onclick="showOpicAnswer()" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-1.5 px-3 rounded-lg transition">✅ 정답 보기</button>
                         <button onclick="stopShadowingMode()" class="text-xs bg-slate-500 hover:bg-slate-600 text-white font-semibold py-1.5 px-3 rounded-lg transition">⏹ 종료</button>
+                        <button onclick="closeShadowingPanel()" class="text-xs bg-slate-700 hover:bg-slate-800 text-white font-semibold py-1.5 px-3 rounded-lg transition">닫기 ✕</button>
                     </div>
                 </div>
                 <div class="bg-white border border-purple-100 rounded-xl p-4">
@@ -876,8 +899,10 @@
         }
 
         const WRONG_COUNT_STORAGE_KEY = `soriPatternBookWrongCounts:${document.title}`;
-        let questions = rawData.map((item, idx) => ({ ...item, id: idx, wrongCount: 0 }));
+        const STUDY_COUNT_STORAGE_KEY = `soriPatternBookStudyCounts:${document.title}`;
+        let questions = rawData.map((item, idx) => ({ ...item, id: idx, wrongCount: 0, studyCount: 0 }));
         loadWrongCounts();
+        loadStudyCounts();
         let currentDisplayList = [...questions];
         let currentMode = "all";
 
@@ -900,6 +925,28 @@
                 if (q.wrongCount > 0) counts[q.id] = q.wrongCount;
             });
             localStorage.setItem(WRONG_COUNT_STORAGE_KEY, JSON.stringify(counts));
+        }
+
+
+        function loadStudyCounts() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(STUDY_COUNT_STORAGE_KEY) || '{}');
+                questions.forEach(q => {
+                    if (saved[q.id] !== undefined) {
+                        q.studyCount = Math.max(0, Number(saved[q.id]) || 0);
+                    }
+                });
+            } catch (e) {
+                console.warn('학습 횟수 저장 데이터를 불러오지 못했습니다.', e);
+            }
+        }
+
+        function saveStudyCounts() {
+            const counts = {};
+            questions.forEach(q => {
+                if (q.studyCount > 0) counts[q.id] = q.studyCount;
+            });
+            localStorage.setItem(STUDY_COUNT_STORAGE_KEY, JSON.stringify(counts));
         }
 
 
@@ -973,6 +1020,14 @@
                     </div>
 
                     <div class="w-full md:w-auto flex flex-col sm:flex-row gap-4 items-start sm:items-center md:justify-end">
+                        <div class="flex items-center bg-emerald-50 border border-emerald-200 rounded-lg p-1">
+                            <button onclick="changeStudyCount(${q.id}, -1)" class="w-7 h-7 bg-white border border-emerald-200 text-emerald-700 rounded flex items-center justify-center font-bold hover:bg-emerald-50 active:scale-95 transition text-xs">-</button>
+                            <span id="study-counter-val-${q.id}" class="px-3 font-bold text-sm text-emerald-700">
+                                학습: ${q.studyCount || 0}회
+                            </span>
+                            <button onclick="changeStudyCount(${q.id}, 1)" class="w-7 h-7 bg-emerald-500 text-white rounded flex items-center justify-center font-bold hover:bg-emerald-600 active:scale-95 transition text-xs">+</button>
+                        </div>
+
                         <div class="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-1">
                             <button onclick="changeCount(${q.id}, -1)" class="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded flex items-center justify-center font-bold hover:bg-slate-50 active:scale-95 transition text-xs">-</button>
                             <span id="counter-val-${q.id}" class="px-3 font-bold text-sm ${q.wrongCount >= 5 ? 'text-rose-600' : 'text-slate-700'}">
@@ -1034,11 +1089,30 @@
             return "원래 순서";
         }
 
+
+        function changeStudyCount(id, amount) {
+            const item = questions.find(q => q.id === id);
+            if (item) {
+                item.studyCount = Math.max(0, (item.studyCount || 0) + amount);
+                saveStudyCounts();
+
+                const dashboardPanel = document.getElementById('dashboard-panel');
+                if (dashboardPanel && dashboardPanel.classList.contains('visible-text')) showDashboard();
+
+                const label = document.getElementById(`study-counter-val-${id}`);
+                if (label) {
+                    label.innerText = `학습: ${item.studyCount}회`;
+                }
+            }
+        }
+
         function changeCount(id, amount) {
             const item = questions.find(q => q.id === id);
             if (item) {
                 item.wrongCount = Math.max(0, item.wrongCount + amount);
                 saveWrongCounts();
+                const dashboardPanel = document.getElementById('dashboard-panel');
+                if (dashboardPanel && dashboardPanel.classList.contains('visible-text')) showDashboard(); // refresh dashboard
 
                 const label = document.getElementById(`counter-val-${id}`);
                 if (label) {
@@ -1093,9 +1167,10 @@
         }
 
         function resetAllCounts() {
-            if (confirm("모든 문장의 틀린 횟수 누적 데이터를 초기화하시겠습니까?")) {
-                questions.forEach(q => q.wrongCount = 0);
+            if (confirm("모든 문장의 학습 횟수와 틀린 횟수 누적 데이터를 초기화하시겠습니까?")) {
+                questions.forEach(q => { q.wrongCount = 0; q.studyCount = 0; });
                 localStorage.removeItem(WRONG_COUNT_STORAGE_KEY);
+                localStorage.removeItem(STUDY_COUNT_STORAGE_KEY);
                 if (currentMode === "wrong") {
                     currentDisplayList = [];
                     document.getElementById('filter-status').innerText =
@@ -1106,7 +1181,8 @@
                     setInitialStatus();
                 }
                 renderQuestions();
-                alert("틀린 횟수가 모두 초기화되었습니다.");
+                if (document.getElementById('dashboard-panel')?.classList.contains('visible-text')) showDashboard();
+                alert("학습 횟수와 틀린 횟수가 모두 초기화되었습니다.");
             }
         }
 
@@ -1147,7 +1223,96 @@
         }
 
 
+
+        function showDashboard() {
+            const total = questions.length;
+            const zero = questions.filter(q => q.wrongCount === 0).length;
+            const low = questions.filter(q => q.wrongCount >= 1 && q.wrongCount <= 3).length;
+            const mid = questions.filter(q => q.wrongCount >= 4 && q.wrongCount <= 9).length;
+            const high = questions.filter(q => q.wrongCount >= 10).length;
+            const wrongTotal = questions.filter(q => q.wrongCount >= 1).length;
+            const maxWrong = questions.reduce((max, q) => Math.max(max, q.wrongCount), 0);
+            const totalStudy = questions.reduce((sum, q) => sum + (q.studyCount || 0), 0);
+            const completionRate = total ? Math.round((zero / total) * 100) : 0;
+            const reviewRate = total ? Math.round((wrongTotal / total) * 100) : 0;
+
+            const content = document.getElementById('dashboard-content');
+            if (!content) return;
+
+            content.innerHTML = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div class="bg-white border border-cyan-100 rounded-xl p-4">
+                        <p class="text-xs text-slate-500 mb-1">전체 문장</p>
+                        <p class="text-2xl font-bold text-slate-800">${total}</p>
+                    </div>
+                    <div class="bg-white border border-cyan-100 rounded-xl p-4">
+                        <p class="text-xs text-slate-500 mb-1">0회 틀림</p>
+                        <p class="text-2xl font-bold text-emerald-600">${zero}</p>
+                    </div>
+                    <div class="bg-white border border-cyan-100 rounded-xl p-4">
+                        <p class="text-xs text-slate-500 mb-1">틀린 문장</p>
+                        <p class="text-2xl font-bold text-rose-600">${wrongTotal}</p>
+                    </div>
+                    <div class="bg-white border border-cyan-100 rounded-xl p-4">
+                        <p class="text-xs text-slate-500 mb-1">최대 틀림</p>
+                        <p class="text-2xl font-bold text-purple-600">${maxWrong}회</p>
+                    </div>
+                </div>
+                <div class="bg-white border border-cyan-100 rounded-xl p-4 mb-4">
+                    <div class="flex justify-between text-xs text-slate-500 mb-2">
+                        <span>0회 틀림 비율</span>
+                        <span>${completionRate}%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                        <div class="bg-emerald-500 h-3 rounded-full" style="width:${completionRate}%"></div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">복습 필요 문장 비율: ${reviewRate}% · 누적 학습 횟수: ${totalStudy}회</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <button onclick="filterWrongRange(1,3)" class="bg-white hover:bg-amber-50 border border-amber-200 rounded-xl p-4 text-left transition">
+                        <p class="text-sm text-slate-500">1~3회 틀림</p>
+                        <p class="text-xl font-bold text-amber-600">${low}문장</p>
+                    </button>
+                    <button onclick="filterWrongRange(4,9)" class="bg-white hover:bg-orange-50 border border-orange-200 rounded-xl p-4 text-left transition">
+                        <p class="text-sm text-slate-500">4~9회 틀림</p>
+                        <p class="text-xl font-bold text-orange-600">${mid}문장</p>
+                    </button>
+                    <button onclick="filterWrongRange(10,9999)" class="bg-white hover:bg-rose-50 border border-rose-200 rounded-xl p-4 text-left transition">
+                        <p class="text-sm text-slate-500">10회 이상 틀림</p>
+                        <p class="text-xl font-bold text-rose-600">${high}문장</p>
+                    </button>
+                </div>
+            `;
+
+            const panel = document.getElementById('dashboard-panel');
+            if (panel) {
+                panel.classList.remove('hidden-text');
+                panel.classList.add('visible-text');
+                panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function closeDashboard() {
+            const panel = document.getElementById('dashboard-panel');
+            if (panel) {
+                panel.classList.remove('visible-text');
+                panel.classList.add('hidden-text');
+            }
+        }
+
+        function filterWrongRange(min, max) {
+            currentMode = "wrong";
+            currentDisplayList = questions
+                .filter(q => q.wrongCount >= min && q.wrongCount <= max)
+                .sort((a, b) => (b.wrongCount - a.wrongCount) || (a.id - b.id));
+            const label = max >= 9999 ? `${min}회 이상` : `${min}~${max}회`;
+            const status = document.getElementById('filter-status');
+            if (status) status.innerText = `현재 상태: ${label} 틀린 문장 (${currentDisplayList.length}문장)`;
+            renderQuestions();
+        }
+
         let shadowingSpeechRate = parseFloat(localStorage.getItem("shadowingSpeechRate") || "0.8");
+        let practiceMode = localStorage.getItem("practiceMode") || "shadowing";
         let shadowingList = [];
         let shadowingIndex = 0;
         let shadowingActive = false;
@@ -1170,6 +1335,47 @@
                 select.value = shadowingSpeechRate.toString();
             }
         }
+
+        function changePracticeMode(value) {
+            practiceMode = value || "shadowing";
+            localStorage.setItem("practiceMode", practiceMode);
+            renderShadowingSentence();
+            const guide = document.getElementById('shadowing-guide');
+            if (guide) {
+                guide.innerText = practiceMode === "opic"
+                    ? "OPIC 모드: 한국어를 보고 먼저 영어로 말한 뒤 정답 보기를 누르세요."
+                    : "쉐도잉 모드: 먼저 듣고, 음성이 끝나면 따라 말해보세요.";
+            }
+        }
+
+        function syncPracticeModeSelect() {
+            const select = document.getElementById('practice-mode-select');
+            if (select) select.value = practiceMode;
+        }
+
+        function showOpicAnswer() {
+            if (!shadowingList.length) {
+                startShadowingMode();
+                return;
+            }
+            const q = shadowingList[shadowingIndex];
+            if (!q) return;
+            const en = document.getElementById('shadowing-en');
+            const guide = document.getElementById('shadowing-guide');
+            if (en) en.innerText = q.en;
+            if (guide) guide.innerText = '정답을 듣고 바로 따라 말해보세요.';
+            speakForShadowing(q.en, () => startShadowingCountdown(5));
+        }
+
+        function closeShadowingPanel() {
+            stopShadowingMode();
+            const panel = document.getElementById('shadowing-panel');
+            if (panel) {
+                panel.classList.remove('visible-text');
+                panel.classList.add('hidden-text');
+            }
+        }
+
 
         function getShadowingSourceList() {
             const list = currentDisplayList && currentDisplayList.length ? currentDisplayList : questions;
@@ -1206,10 +1412,14 @@
             const en = document.getElementById('shadowing-en');
             const guide = document.getElementById('shadowing-guide');
             if (!q) return;
-            if (status) status.innerText = `문장 ${shadowingIndex + 1} / ${total}`;
+            if (status) status.innerText = `${practiceMode === "opic" ? "OPIC" : "쉐도잉"} · 문장 ${shadowingIndex + 1} / ${total}`;
             if (kr) kr.innerText = q.kr;
-            if (en) en.innerText = q.en;
-            if (guide) guide.innerText = '먼저 듣고, 음성이 끝나면 5초 동안 바로 따라 말해보세요.';
+            if (en) en.innerText = practiceMode === "opic" ? "영어로 먼저 말해본 뒤 [정답 보기]를 눌러보세요." : q.en;
+            if (guide) {
+                guide.innerText = practiceMode === "opic"
+                    ? '한국어를 보고 먼저 영어로 말해보세요. 필요하면 정답 보기를 누르세요.'
+                    : '먼저 듣고, 음성이 끝나면 5초 동안 바로 따라 말해보세요.';
+            }
         }
 
         function playCurrentShadowing() {
@@ -1221,7 +1431,14 @@
             if (!q) return;
             clearTimeout(shadowingTimer);
             renderShadowingSentence();
-            speakForShadowing(q.en, () => startShadowingCountdown(5));
+
+            if (practiceMode === "opic") {
+                const guide = document.getElementById('shadowing-guide');
+                if (guide) guide.innerText = 'OPIC 모드: 한국어를 보고 먼저 영어로 말해보세요. 10초 후 다음 문장으로 넘어갑니다.';
+                startShadowingCountdown(10);
+            } else {
+                speakForShadowing(q.en, () => startShadowingCountdown(5));
+            }
         }
 
         function speakForShadowing(text, onEnd) {
@@ -1287,6 +1504,7 @@
 
         setInitialStatus();
         syncShadowingSpeedSelect();
+        syncPracticeModeSelect();
         renderQuestions();
 </script>
 </body>
