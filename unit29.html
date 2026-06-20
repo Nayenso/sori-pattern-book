@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPIc Unit 29 오답노트 학습기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+        .hidden-text { display: none; }
+        .visible-text { display: block; }
+        .pattern-badge { background-color: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <a href="index.html" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 mb-4 transition">
+            ← 메인으로 돌아가기
+        </a>
+
+        <header class="mb-8 text-center bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">OPIc Unit 29 학습기 (v2)</h1>
+            <p class="text-slate-600 mb-6">틀린 횟수를 체크하고, 5회 이상 틀린 취약 문장들을 집중적으로 복습해보세요!</p>
+            
+            <div class="flex flex-wrap justify-center gap-3">
+                <button onclick="shuffleQuestions()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    🔄 문제 섞기
+                </button>
+                <button onclick="showOriginalOrder()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    📋 원래 전체 순서로 보기
+                </button>
+                <button onclick="filterHardQuestions()" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    ⚠️ 5회 이상 틀린 문제만 보기
+                </button>
+                <button onclick="resetAllCounts()" class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    🧹 카운트 전체 초기화
+                </button>
+            </div>
+            <div id="filter-status" class="mt-4 text-sm font-medium text-indigo-600">
+                현재 상태: 전체 항목 보기 (총 52문장)
+            </div>
+        </header>
+
+        <div id="content-area" class="space-y-4">
+            <!-- Questions will be dynamically injected here -->
+        </div>
+    </div>
+
+    <script>
+        const rawData = [
+            // Pattern 201
+            { pattern: "201", kr: "난 네가 이해 안 돼.", en: "I don't get you.", hint: "I don't ___ ___." },
+            { pattern: "201", kr: "난 걔가 왜 그런 말을 했는지 이해 안 돼.", en: "I don't get why she said that.", hint: "I don't ___ why ___ ___ ___." },
+            { pattern: "201", kr: "난 네가 무슨 말을 하고 있는지 이해 안 돼.", en: "I don't get what you're saying.", hint: "I don't ___ what ___ ___." },
+            { pattern: "201", kr: "난 이 문제가 이해 안 돼. 답이 뭐야?", en: "I don't get this question. What's the answer?", hint: "I don't ___ this ___. What's ___ ___?" },
+            { pattern: "201", kr: "난 방금 여기서 무슨 일이 일어난 건지 이해 안 돼.", en: "I don't get what just happened here.", hint: "I don't ___ what ___ ___ ___." },
+            { pattern: "201", kr: "A: 소개팅 어땠어?", en: "How did your blind date go?", hint: "How ___ your ___ ___ ___?" },
+            { pattern: "201", kr: "B: 잘 모르겠어. 잘된 것 같았는데, 그 남자가 아직 데이트 신청을 안 했어.", en: "I'm not sure. I thought it went well, but he hasn't asked me out again.", hint: "I'm not ___. I thought it ___ ___, but he hasn't ___ ___ ___ ___." },
+            { pattern: "201", kr: "A: 며칠 됐는데?", en: "How many days has it been since?", hint: "How ___ ___ ___ it ___ ___?" },
+            { pattern: "201", kr: "B: 일주일이나! 이해가 안 돼. 우리 잘 맞았던 것 같았는데.", en: "A week! I don't get it. I thought we hit it off.", hint: "A week! I don't ___ it. I thought we ___ ___ ___." },
+
+            // Pattern 202
+            { pattern: "202", kr: "내가 우리 먹을 것 좀 가지고 올게.", en: "I'll go get us something to eat.", hint: "I'll ___ ___ us ___ to ___." },
+            { pattern: "202", kr: "내 물건 가지고 올게.", en: "I'll go get my stuff.", hint: "I'll ___ ___ my ___." },
+            { pattern: "202", kr: "내가 네 대신 그거 가지고 와 줄게.", en: "I'll go get it for you.", hint: "I'll ___ ___ it ___ ___." },
+            { pattern: "202", kr: "내가 필기도구 가지고 올게.", en: "I'll go get a pen and paper.", hint: "I'll ___ ___ a ___ and ___." },
+            { pattern: "202", kr: "내가 차 키 좀 가지고 올게.", en: "I'll go get the car keys.", hint: "I'll ___ ___ the ___ ___." },
+            { pattern: "202", kr: "A: 오늘 무지 덥다.", en: "It's scorching hot today.", hint: "It's ___ ___ today." },
+            { pattern: "202", kr: "B: 그러게 말이야. 녹아 버릴 것만 같아.", en: "Tell me about it. I feel like I'm gonna melt.", hint: "Tell me ___ it. I ___ like I'm ___ ___." },
+            { pattern: "202", kr: "A: 넌 어떨지 모르겠지만. 난 찬 게 너무 마시고 싶어.", en: "I don't know about you, but I could use a cold drink.", hint: "I don't ___ ___ you, but I could ___ a ___ ___." },
+            { pattern: "202", kr: "B: 냉장고에 콜라가 좀 있어. 내가 갖고 올게.", en: "There's some Coke in my fridge. I'll go get it.", hint: "There's some ___ in my ___. I'll ___ ___ it." },
+
+            // Pattern 203
+            { pattern: "203", kr: "너 생일 선물로 주려고 뭐 좀 샀어.", en: "I got you something for your birthday.", hint: "I ___ you ___ for your ___." },
+            { pattern: "203", kr: "너 주려고 아이스크림 좀 갖고 왔어, 네가 제일 좋아하는 걸로.", en: "I got you some ice cream, your favorite.", hint: "I ___ you some ___ ___, your ___." },
+            { pattern: "203", kr: "감사의 표시로 너 주려고 이걸 샀어.", en: "I got you this as a thank-you.", hint: "I ___ you this as a ___." },
+            { pattern: "203", kr: "너 주려고 뭐 하나 샀어. 너 정말 맘에 들어할 거야.", en: "I got you something. You're gonna love it.", hint: "I ___ you ___. You're ___ ___ it." },
+            { pattern: "203", kr: "너 주려고 조그만 거 하나 샀어.", en: "I got you a little something.", hint: "I ___ you a ___ ___." },
+            { pattern: "203", kr: "A: 여기, 감사의 표시로 널 위해 조그만 거 하나 샀어.", en: "Here. I got you a little something as a token of my gratitude.", hint: "Here. I ___ you a ___ ___ as a ___ of my ___." },
+            { pattern: "203", kr: "B: 어머, 그럴 것까진 없었는데.", en: "Aw, you shouldn't have.", hint: "Aw, you ___ ___." },
+            { pattern: "203", kr: "A: 무슨 소리야. 네 충고가 날 살린 거나 마찬가지였다고. 자 여기 받아.", en: "What are you talking about? Your advice practically saved my life. Here. Take it.", hint: "What are you ___ ___? Your ___ ___ saved my ___. Here. ___ it." },
+            { pattern: "203", kr: "B: 그래. 정말 고마워. 정말 멋지다.", en: "Well, thank you very much. It's lovely.", hint: "Well, ___ you ___ ___. It's ___." },
+
+            // Pattern 204
+            { pattern: "204", kr: "나 스케줄에 문제가 있어.", en: "I've got a problem with my schedule.", hint: "I've ___ a ___ with my ___." },
+            { pattern: "204", kr: "난 네 태도가 마음에 안 들어.", en: "I've got a problem with your attitude.", hint: "I've ___ a ___ with your ___." },
+            { pattern: "204", kr: "내 컴퓨터에 문제가 생겼어.", en: "I've got a problem with my computer.", hint: "I've ___ a ___ with my ___." },
+            { pattern: "204", kr: "나 여자 친구하고 문제가 있어.", en: "I've got a problem with my girlfriend.", hint: "I've ___ a ___ with my ___." },
+            { pattern: "204", kr: "난 네가 책임 회피하는 게 마음에 안 들어.", en: "I've got a problem with the way you avoid responsibility.", hint: "I've ___ a ___ with the ___ you ___ ___." },
+            { pattern: "204", kr: "A: 무슨 일이야? 오늘 하루 종일 평소답지 않게 신경질적이네.", en: "What's going on? You've been unusually snappy all day.", hint: "What's ___ ___? You've been ___ ___ all day." },
+            { pattern: "204", kr: "B: 미안해. 직장 동료하고 문제가 좀 있어서.", en: "I'm sorry. I've got a problem with my co-worker.", hint: "I'm ___. I've ___ a ___ with my ___." },
+            { pattern: "204", kr: "A: 아. 안됐구나.", en: "Oh. I'm sorry to hear that.", hint: "Oh. I'm ___ to ___ ___." },
+            { pattern: "204", kr: "B: 응. 그 사람이 태도에 문제가 있거든. 사무실에 있는 사람들이 다 그사람 때문에 미치려고 해.", en: "Yeah. He has an attitude problem. He's driving everyone in the office crazy.", hint: "Yeah. He has an ___ ___. He's ___ everyone in the ___ ___." },
+
+            // Pattern 205
+            { pattern: "205", kr: "너 어떻게 걔가 진심을 말하게 했어?", en: "How did you get her to tell you the truth?", hint: "How ___ you ___ her to ___ ___ the ___?" },
+            { pattern: "205", kr: "너 어떻게 걔가 네 말을 듣게 한 거니?", en: "How did you get him to listen to you?", hint: "How ___ you ___ him to ___ to ___?" },
+            { pattern: "205", kr: "너 어떻게 걔가 진정하게 했어?", en: "How did you get her to calm down?", hint: "How ___ you ___ her to ___ ___?" },
+            { pattern: "205", kr: "너 어떻게 매니저가 그걸 승낙하게 한 거야?", en: "How did you get the manager to sign off on that?", hint: "How ___ you ___ the ___ to ___ ___ on that?" },
+            { pattern: "205", kr: "너 어떻게 네 부모님이 네 남자 친구를 허락하시게 한 거야?", en: "How did you get your parents to approve of your boyfriend?", hint: "How ___ you ___ your ___ to ___ of your ___?" },
+            { pattern: "205", kr: "A: 너 내가 잃어버렸다고 했던 열쇠고리 기억 나?", en: "Do you remember the keychain I told you I lost?", hint: "Do you ___ the ___ I ___ you I ___?" },
+            { pattern: "205", kr: "B: 당연하지. 그게 뭐?", en: "Of course. What about it?", hint: "Of ___. What ___ it?" },
+            { pattern: "205", kr: "A: 그거 있지. 알고 보니까 미셸이 훔쳤던 거 있지, 바로 내가 의심했던 대로 말이야.", en: "Well, it turns out Michelle stole it, just like I suspected.", hint: "Well, it ___ ___ Michelle ___ it, just ___ I ___." },
+            { pattern: "205", kr: "B: 세상에. 넌 어떻게 걔가 그걸 자백하게 만들었니?", en: "No way. How did you get her to admit to that?", hint: "No way. How ___ you ___ her to ___ to that?" },
+
+            // Pattern 206
+            { pattern: "206", kr: "이 대화는 전혀 진전이 없어.", en: "This conversation is getting nowhere.", hint: "This ___ is ___ ___." },
+            { pattern: "206", kr: "우리 진도를 전혀 못 나가고 있어 잠깐 쉬자.", en: "We are getting nowhere. Let's take a break.", hint: "We are ___ ___. Let's ___ a ___." },
+            { pattern: "206", kr: "걔는 여자하고 전혀 진전이 없어.", en: "He is getting nowhere with women.", hint: "He is ___ ___ with ___." },
+            { pattern: "206", kr: "우리 관계에 전혀 진전이 없어.", en: "Our relationship is getting nowhere.", hint: "Our ___ is ___ ___." },
+            { pattern: "206", kr: "난 전혀 진전이 없는 것처럼 느껴져.(난 되는 일이 없어.)", en: "I feel like I'm getting nowhere.", hint: "I ___ like I'm ___ ___." },
+            { pattern: "206", kr: "A: 됐어. 이제 포기할 거야.", en: "That's it. I'm giving up.", hint: "That's ___. I'm ___ ___." },
+            { pattern: "206", kr: "B: 뭘 포기해?", en: "Giving up on what?", hint: "___ up on ___?" },
+            { pattern: "206", kr: "A: 살 좀 빼려는 중인데. 전혀 진전이 없어. 허리에서 1인치도 안 빠졌다고.", en: "I've been trying to shed a few pounds, but I'm getting nowhere. I haven't lost an inch off my waist!", hint: "I've been ___ to ___ a few ___, but I'm ___ ___. I haven't ___ an ___ off my ___!" },
+            { pattern: "206", kr: "B: 네가 뭔가 잘못하고 있을지도 모르지.", en: "Maybe you're not doing it right.", hint: "Maybe you're ___ ___ it ___." }
+        ];
+
+        const patternVocab = {
+            "201": [
+                { word: "don't get", ipa: "/doʊnt ɡet/", meaning: "(구어) ~을/가 이해가 안 되다" },
+                { word: "get it", ipa: "/ɡet ɪt/", meaning: "이해가 안 돼 (상황·이유를)" },
+                { word: "blind date", ipa: "/blaɪnd deɪt/", meaning: "소개팅, 맞선" },
+                { word: "ask (sb) out", ipa: "/æsk aʊt/", meaning: "(연애) 데이트를 신청하다" },
+                { word: "hit it off", ipa: "/hɪt ɪt ɔːf/", meaning: "(서로) 잘 맞다, 콤을 타다" },
+                { word: "I'm not sure", ipa: "/aɪm nɑːt ʃʊr/", meaning: "잘 모르겠어, 확신이 없어" }
+            ],
+            "202": [
+                { word: "go get", ipa: "/ɡoʊ ɡet/", meaning: "(다녀와서) 가져오다, ~해 오다" },
+                { word: "something to eat", ipa: "/ˈsʌmθɪŋ tuː iːt/", meaning: "먹을 것" },
+                { word: "stuff", ipa: "/stʌf/", meaning: "물건, 짐 (구어)" },
+                { word: "scorching hot", ipa: "/ˈskɔːrtʃɪŋ hɑːt/", meaning: "무지 덥다, 타는 듯 덥다" },
+                { word: "tell me about it", ipa: "/tel mi əˈbaʊt ɪt/", meaning: "그러게 말이야 (공감)" },
+                { word: "could use", ipa: "/kʊd juːs/", meaning: "~이 필요하다, ~했으면 좋겠다" },
+                { word: "fridge", ipa: "/frɪdʒ/", meaning: "냉장고 (구어)" }
+            ],
+            "203": [
+                { word: "got you ~", ipa: "/ɡɑːt juː/", meaning: "너 주려고 ~을 샀어/준비했어" },
+                { word: "a little something", ipa: "/ə ˈlɪtl ˈsʌmθɪŋ/", meaning: "조그만 선물, 작은 것" },
+                { word: "as a thank-you", ipa: "/æz ə θæŋk juː/", meaning: "감사의 표시로" },
+                { word: "token of gratitude", ipa: "/ˈtoʊkən əv ˈɡrætɪtuːd/", meaning: "감사의 표시, 감사의 증표" },
+                { word: "you shouldn't have", ipa: "/juː ˈʃʊdnt hæv/", meaning: "(선물 받으며) 그럴 필요 없었는데" },
+                { word: "practically", ipa: "/ˈpræktɪkli/", meaning: "거의, 사실상" },
+                { word: "lovely", ipa: "/ˈlʌvli/", meaning: "멋지다, 예쁘다, 좋다" }
+            ],
+            "204": [
+                { word: "have got a problem with", ipa: "/hæv ɡɑːt ə ˈprɑːbləm wɪð/", meaning: "~에 문제가 있다, ~가 마음에 안 든다" },
+                { word: "attitude", ipa: "/ˈætɪtuːd/", meaning: "태도" },
+                { word: "avoid responsibility", ipa: "/əˈvɔɪd rɪˌspɑːnsəˈbɪləti/", meaning: "책임을 회피하다" },
+                { word: "what's going on", ipa: "/wɑːts ˈɡoʊɪŋ ɑːn/", meaning: "무슨 일이야?" },
+                { word: "snappy", ipa: "/ˈsnæpi/", meaning: "신경질적인, 짜증 섞인" },
+                { word: "co-worker", ipa: "/ˈkoʊˌwɜːrkər/", meaning: "직장 동료" },
+                { word: "sorry to hear that", ipa: "/ˈsɑːri tuː hɪr ðæt/", meaning: "안됐구나, 유감이야" },
+                { word: "driving (sb) crazy", ipa: "/ˈdraɪvɪŋ ˈkreɪzi/", meaning: "~를 미치게 하다" }
+            ],
+            "205": [
+                { word: "get sb to do", ipa: "/ɡet sʌmbədi tuː duː/", meaning: "~가 …하게 만들다/하도록 하다" },
+                { word: "calm down", ipa: "/kɑːm daʊn/", meaning: "진정하다, 가라앉다" },
+                { word: "sign off on", ipa: "/saɪn ɔːf ɑːn/", meaning: "(공식적으로) 승인하다, 결재하다" },
+                { word: "approve of", ipa: "/əˈpruːv əv/", meaning: "~을 승인/허락하다" },
+                { word: "keychain", ipa: "/ˈkiːtʃeɪn/", meaning: "열쇠고리" },
+                { word: "what about it", ipa: "/wɑːt əˈbaʊt ɪt/", meaning: "그게 뭐? (그건 왜?)" },
+                { word: "it turns out", ipa: "/ɪt tɜːrnz aʊt/", meaning: "알고 보니, 결과적으로" },
+                { word: "admit to", ipa: "/ədˈmɪt tuː/", meaning: "~을 인정/자백하다" }
+            ],
+            "206": [
+                { word: "getting nowhere", ipa: "/ˈɡetɪŋ ˈnoʊwer/", meaning: "전혀 진전이 없다" },
+                { word: "take a break", ipa: "/teɪk ə breɪk/", meaning: "잠깐 쉬다" },
+                { word: "relationship", ipa: "/rɪˈleɪʃnʃɪp/", meaning: "관계 (연인·인간)" },
+                { word: "giving up", ipa: "/ˈɡɪvɪŋ ʌp/", meaning: "포기하다" },
+                { word: "shed a few pounds", ipa: "/ʃed ə fjuː paʊndz/", meaning: "살을 조금 빼다" },
+                { word: "lose an inch", ipa: "/luːz ən ɪntʃ/", meaning: "1인치(약 2.5cm) 줄다" },
+                { word: "not doing it right", ipa: "/nɑːt ˈduːɪŋ ɪt raɪt/", meaning: "제대로 하고 있지 않다" }
+            ]
+        };
+
+        const sentenceVocab = {
+            0: [{ word: "get you", ipa: "/ɡet juː/", meaning: "네 말/네가 이해가 안 돼" }],
+            1: [{ word: "get why ~", ipa: "/ɡet waɪ/", meaning: "왜 ~인지 이해가 안 돼" }],
+            2: [{ word: "what you're saying", ipa: "/wɑːt jʊr ˈseɪɪŋ/", meaning: "네가 하는 말" }],
+            3: [{ word: "this question", ipa: "/ðɪs ˈkwestʃən/", meaning: "이 문제(질문)" }],
+            4: [{ word: "just happened", ipa: "/dʒʌst ˈhæpənd/", meaning: "방금 일어난" }],
+            5: [{ word: "How did ~ go?", ipa: "/haʊ dɪd ɡoʊ/", meaning: "~은 어땠어? (결과)" }],
+            6: [{ word: "ask me out again", ipa: "/æsk miː aʊt əˈɡen/", meaning: "다시 데이트를 신청하다" }],
+            7: [{ word: "how many days", ipa: "/haʊ ˈmeni deɪz/", meaning: "며칠" }, { word: "since", ipa: "/sɪns/", meaning: "~ 이후로" }],
+            8: [{ word: "I don't get it", ipa: "/aɪ doʊnt ɡet ɪt/", meaning: "이해가 안 돼" }],
+            9: [{ word: "go get us ~", ipa: "/ɡoʊ ɡet ʌs/", meaning: "우리 것 ~을 가져올게" }],
+            10: [{ word: "my stuff", ipa: "/maɪ stʌf/", meaning: "내 물건" }],
+            11: [{ word: "for you", ipa: "/fɔːr juː/", meaning: "너를 위해, 네 대신" }],
+            12: [{ word: "pen and paper", ipa: "/pen ænd ˈpeɪpər/", meaning: "펜과 종이 (필기도구)" }],
+            13: [{ word: "car keys", ipa: "/kɑːr kiːz/", meaning: "차 열쇠" }],
+            14: [{ word: "scorching", ipa: "/ˈskɔːrtʃɪŋ/", meaning: "타는 듯한, 극심한 (더위)" }],
+            15: [{ word: "gonna melt", ipa: "/ˈɡɔːnə melt/", meaning: "녹아 버릴 것 같아" }],
+            16: [{ word: "I don't know about you", ipa: "/aɪ doʊnt noʊ əˈbaʊt juː/", meaning: "넌 모르겠지만 (나는)" }],
+            17: [{ word: "go get it", ipa: "/ɡoʊ ɡet ɪt/", meaning: "그걸 가져올게" }],
+            18: [{ word: "for your birthday", ipa: "/fɔːr jʊr ˈbɜːrθdeɪ/", meaning: "생일 선물로" }],
+            19: [{ word: "your favorite", ipa: "/jʊr ˈfeɪvərɪt/", meaning: "네가 제일 좋아하는 것" }],
+            20: [{ word: "thank-you", ipa: "/θæŋk juː/", meaning: "감사, 고마움" }],
+            21: [{ word: "You're gonna love it", ipa: "/jʊr ˈɡɔːnə lʌv ɪt/", meaning: "정말 맘에 들어할 거야" }],
+            22: [{ word: "a little something", ipa: "/ə ˈlɪtl ˈsʌmθɪŋ/", meaning: "조그만 선물" }],
+            23: [{ word: "token of my gratitude", ipa: "/ˈtoʊkən əv maɪ ˈɡrætɪtuːd/", meaning: "나의 감사의 표시" }],
+            24: [{ word: "Aw", ipa: "/ɔː/", meaning: "어머 (감탄·감동)" }],
+            25: [{ word: "saved my life", ipa: "/seɪvd maɪ laɪf/", meaning: "날 살렸다 (과장 표현)" }],
+            26: [{ word: "thank you very much", ipa: "/θæŋk juː ˈveri mʌtʃ/", meaning: "정말 고마워" }],
+            27: [{ word: "schedule", ipa: "/ˈskedʒuːl/", meaning: "일정, 스케줄" }],
+            28: [{ word: "your attitude", ipa: "/jʊr ˈætɪtuːd/", meaning: "네 태도" }],
+            29: [{ word: "my computer", ipa: "/maɪ kəmˈpjuːtər/", meaning: "내 컴퓨터" }],
+            30: [{ word: "my girlfriend", ipa: "/maɪ ˈɡɜːrlfrend/", meaning: "내 여자친구" }],
+            31: [{ word: "the way you ~", ipa: "/ðə weɪ juː/", meaning: "네가 ~하는 방식" }],
+            32: [{ word: "unusually snappy", ipa: "/ʌnˈjuːʒuəli ˈsnæpi/", meaning: "평소와 다르게 신경질적인" }],
+            33: [{ word: "co-worker", ipa: "/ˈkoʊˌwɜːrkər/", meaning: "직장 동료" }],
+            34: [{ word: "sorry to hear that", ipa: "/ˈsɑːri tuː hɪr ðæt/", meaning: "안됐구나" }],
+            35: [{ word: "attitude problem", ipa: "/ˈætɪtuːd ˈprɑːbləm/", meaning: "태도 문제" }],
+            36: [{ word: "tell the truth", ipa: "/tel ðə truːθ/", meaning: "진실을 말하다" }],
+            37: [{ word: "listen to you", ipa: "/ˈlɪsn tuː juː/", meaning: "네 말을 듣다" }],
+            38: [{ word: "calm down", ipa: "/kɑːm daʊn/", meaning: "진정하다" }],
+            39: [{ word: "sign off on that", ipa: "/saɪn ɔːf ɑːn ðæt/", meaning: "그걸 승인하다" }],
+            40: [{ word: "approve of your boyfriend", ipa: "/əˈpruːv əv jʊr ˈbɔɪfrend/", meaning: "남자친구를 허락하다" }],
+            41: [{ word: "Do you remember ~?", ipa: "/duː juː rɪˈmembər/", meaning: "~ 기억나?" }],
+            42: [{ word: "Of course", ipa: "/əv kɔːrs/", meaning: "당연하지" }],
+            43: [{ word: "just like I suspected", ipa: "/dʒʌst laɪk aɪ səˈspektɪd/", meaning: "내가 의심했던 대로" }],
+            44: [{ word: "No way", ipa: "/noʊ weɪ/", meaning: "세상에, 말도 안 돼" }],
+            45: [{ word: "conversation", ipa: "/ˌkɑːnvərˈseɪʃn/", meaning: "대화" }],
+            46: [{ word: "Let's take a break", ipa: "/lets teɪk ə breɪk/", meaning: "잠깐 쉬자" }],
+            47: [{ word: "with women", ipa: "/wɪð ˈwɪmɪn/", meaning: "여자(들)와 (관계에서)" }],
+            48: [{ word: "Our relationship", ipa: "/aʊər rɪˈleɪʃnʃɪp/", meaning: "우리 관계" }],
+            49: [{ word: "feel like", ipa: "/fiːl laɪk/", meaning: "~인 것 같다" }],
+            50: [{ word: "That's it", ipa: "/ðæts ɪt/", meaning: "됐어, 이제 그만" }],
+            51: [{ word: "Giving up on what?", ipa: "/ˈɡɪvɪŋ ʌp ɑːn wɑːt/", meaning: "뭘 포기해?" }],
+            52: [{ word: "off my waist", ipa: "/ɔːf maɪ weɪst/", meaning: "허리둘레에서" }],
+            53: [{ word: "doing it right", ipa: "/ˈduːɪŋ ɪt raɪt/", meaning: "제대로 하고 있다" }]
+        };
+
+        function getVocabForQuestion(q) {
+            const patternItems = patternVocab[q.pattern] || [];
+            const sentenceItems = sentenceVocab[q.id] || [];
+            const seen = new Set();
+            const merged = [];
+
+            [...sentenceItems, ...patternItems].forEach(item => {
+                const key = item.word.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    merged.push(item);
+                }
+            });
+
+            return merged.slice(0, 5);
+        }
+
+        function renderVocabHtml(vocab) {
+            if (!vocab.length) return '';
+            return `
+                <div class="mt-3 pt-3 border-t border-indigo-100">
+                    <p class="text-xs font-semibold text-indigo-600 mb-2">📖 핵심 단어 · 숙어</p>
+                    <ul class="space-y-1.5">
+                        ${vocab.map(v => `
+                            <li class="text-sm leading-relaxed">
+                                <span class="font-semibold text-slate-800">${v.word}</span>
+                                <span class="text-slate-500 font-mono text-xs ml-1">${v.ipa}</span>
+                                <span class="text-slate-600"> — ${v.meaning}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        let questions = rawData.map((item, idx) => ({ ...item, id: idx, wrongCount: 0 }));
+        let currentDisplayList = [...questions];
+        let currentMode = "all";
+
+        function renderQuestions() {
+            const area = document.getElementById('content-area');
+            area.innerHTML = '';
+            
+            if (currentDisplayList.length === 0) {
+                area.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-xl border border-slate-200">
+                        <p class="text-slate-500 text-lg">조건에 맞는 문장이 없습니다. 5회 이상 틀린 문장이 아직 없거나 초기화되었습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            currentDisplayList.forEach((q) => {
+                const vocab = getVocabForQuestion(q);
+                const card = document.createElement('div');
+                card.className = "bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center transition-all hover:border-indigo-300";
+                
+                if (q.wrongCount >= 5) {
+                    card.className += " border-rose-300 bg-rose-50/30";
+                }
+
+                card.innerHTML = `
+                    <div class="flex-1 w-full">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="pattern-badge">Pattern ${q.pattern}</span>
+                            ${q.wrongCount >= 5 ? '<span class="bg-rose-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded">집중 복습</span>' : ''}
+                        </div>
+                        <p class="text-base font-semibold text-slate-800">${q.kr}</p>
+                    </div>
+
+                    <div class="w-full md:w-auto flex flex-col sm:flex-row gap-4 items-start sm:items-center md:justify-end">
+                        <div class="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-1">
+                            <button onclick="changeCount(${q.id}, -1)" class="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded flex items-center justify-center font-bold hover:bg-slate-50 active:scale-95 transition text-xs">-</button>
+                            <span id="counter-val-${q.id}" class="px-3 font-bold text-sm ${q.wrongCount >= 5 ? 'text-rose-600' : 'text-slate-700'}">
+                                틀림: ${q.wrongCount}회
+                            </span>
+                            <button onclick="changeCount(${q.id}, 1)" class="w-7 h-7 bg-rose-500 text-white rounded flex items-center justify-center font-bold hover:bg-rose-600 active:scale-95 transition text-xs">+</button>
+                        </div>
+
+                        <div class="flex-1 sm:flex-initial w-full min-w-[260px] space-y-2">
+                            <div class="flex gap-2">
+                                <button onclick="toggleElement('hint-${q.id}')" class="flex-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-3 rounded-lg font-medium transition">
+                                    💡 힌트 보기
+                                </button>
+                                <button onclick="toggleElement('answer-${q.id}')" class="flex-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 py-1.5 px-3 rounded-lg font-medium transition">
+                                    ✅ 정답 확인
+                                </button>
+                            </div>
+                            <div id="hint-${q.id}" class="hidden-text text-sm text-indigo-600 font-mono italic bg-indigo-50/60 p-2 rounded-md border border-indigo-100">
+                                ${q.hint}
+                            </div>
+                            <div id="answer-${q.id}" class="hidden-text text-base font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 py-1 bg-slate-50/50 p-2 rounded-r-md">
+                                <p>${q.en}</p>
+                                ${renderVocabHtml(vocab)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                area.appendChild(card);
+            });
+        }
+
+        function changeCount(id, amount) {
+            const item = questions.find(q => q.id === id);
+            if (item) {
+                item.wrongCount = Math.max(0, item.wrongCount + amount);
+                
+                const label = document.getElementById(`counter-val-${id}`);
+                if (label) {
+                    label.innerText = `틀림: ${item.wrongCount}회`;
+                    if (item.wrongCount >= 5) {
+                        label.className = "px-3 font-bold text-sm text-rose-600";
+                    } else {
+                        label.className = "px-3 font-bold text-sm text-slate-700";
+                    }
+                }
+
+                if (currentMode === "filtered") {
+                    setTimeout(() => {
+                        filterHardQuestions();
+                    }, 400);
+                }
+            }
+        }
+
+        function shuffleQuestions() {
+            currentMode = "shuffled";
+            for (let i = currentDisplayList.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [currentDisplayList[i], currentDisplayList[j]] = [currentDisplayList[j], currentDisplayList[i]];
+            }
+            document.getElementById('filter-status').innerText = `현재 상태: 무작위 순서 섞기 완료 (${currentDisplayList.length}문장)`;
+            renderQuestions();
+        }
+
+        function showOriginalOrder() {
+            currentMode = "all";
+            currentDisplayList = [...questions].sort((a, b) => a.id - b.id);
+            document.getElementById('filter-status').innerText = "현재 상태: 원래 전체 순서 보기 (총 52문장)";
+            renderQuestions();
+        }
+
+        function filterHardQuestions() {
+            currentMode = "filtered";
+            currentDisplayList = questions.filter(q => q.wrongCount >= 5);
+            document.getElementById('filter-status').innerText = `현재 상태: ⚠️ 5회 이상 틀린 취약 문장만 보기 (${currentDisplayList.length}문장)`;
+            renderQuestions();
+        }
+
+        function resetAllCounts() {
+            if (confirm("모든 문장의 틀린 횟수 누적 데이터를 초기화하시겠습니까?")) {
+                questions.forEach(q => q.wrongCount = 0);
+                if (currentMode === "filtered") {
+                    currentDisplayList = [];
+                } else if (currentMode === "all") {
+                    currentDisplayList = [...questions].sort((a, b) => a.id - b.id);
+                }
+                renderQuestions();
+                alert("틀린 횟수가 모두 초기화되었습니다.");
+            }
+        }
+
+        function toggleElement(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.classList.contains('hidden-text')) {
+                    el.classList.remove('hidden-text');
+                    el.classList.add('visible-text');
+                } else {
+                    el.classList.remove('visible-text');
+                    el.classList.add('hidden-text');
+                }
+            }
+        }
+
+        renderQuestions();
+    </script>
+</body>
+</html>

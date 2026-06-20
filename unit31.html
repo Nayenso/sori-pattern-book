@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPIc Unit 31 오답노트 학습기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+        .hidden-text { display: none; }
+        .visible-text { display: block; }
+        .pattern-badge { background-color: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <a href="index.html" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 mb-4 transition">← 메인으로 돌아가기</a>
+        <header class="mb-8 text-center bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">OPIc Unit 31 학습기 (v2)</h1>
+            <p class="text-slate-600 mb-6">틀린 횟수를 체크하고, 5회 이상 틀린 취약 문장들을 집중적으로 복습해보세요!</p>
+            <div class="flex flex-wrap justify-center gap-3">
+                <button onclick="shuffleQuestions()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">🔄 문제 섞기</button>
+                <button onclick="showOriginalOrder()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">📋 원래 전체 순서로 보기</button>
+                <button onclick="filterHardQuestions()" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">⚠️ 5회 이상 틀린 문제만 보기</button>
+                <button onclick="resetAllCounts()" class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">🧹 카운트 전체 초기화</button>
+            </div>
+            <div id="filter-status" class="mt-4 text-sm font-medium text-indigo-600">현재 상태: 전체 항목 보기 (총 62문장)</div>
+        </header>
+        <div id="content-area" class="space-y-4"></div>
+    </div>
+<script>
+const rawData = [
+    {
+        "pattern": "215",
+        "kr": "내 말을 믿는다고 말해 줘.",
+        "en": "Please tell me that you believe me.",
+        "hint": "Please ___ me ___ ___ ___ me."
+    },
+    {
+        "pattern": "215",
+        "kr": "제발 걔가 승낙했다고 말해줘.",
+        "en": "Please tell me he said yes.",
+        "hint": "Please ___ me he ___ ___."
+    },
+    {
+        "pattern": "215",
+        "kr": "내가 헛걸음한 게 아니라고 말해 줘.",
+        "en": "Please tell me I didn’t come all the way here for nothing.",
+        "hint": "Please ___ me I ___ ___ ___ ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "215",
+        "kr": "제발 내 비밀을 아무한테도 말 안 했다고 말해 줘.",
+        "en": "Please tell me you didn’t tell anyone my secret.",
+        "hint": "Please ___ me ___ ___ ___ ___ my ___."
+    },
+    {
+        "pattern": "215",
+        "kr": "제발 내 대신 걔한테 말해 준다고 말해 줘.",
+        "en": "Please tell me you’ll talk to him for me.",
+        "hint": "Please ___ me ___ ___ to ___ ___ me."
+    },
+    {
+        "pattern": "215",
+        "kr": "A: 제발 내가 늦지 않았다고 말해 줘.",
+        "en": "Please tell me I’m not late.",
+        "hint": "Please ___ me ___ ___ ___."
+    },
+    {
+        "pattern": "215",
+        "kr": "B: 간신히 시간 맞춰서 왔어. 회의가 이제 막 시작되려는 참이야.",
+        "en": "You barely made it. The meeting’s just about to start.",
+        "hint": "You ___ ___ it. The ___ ___ ___ to ___."
+    },
+    {
+        "pattern": "215",
+        "kr": "A: 휴우. 큰일 날 뻔했네. 또 늦으면 안 되거든.",
+        "en": "Phew! That was close. I can’t afford to be late again.",
+        "hint": "___! ___ ___ ___. I ___ ___ to be ___ ___."
+    },
+    {
+        "pattern": "215",
+        "kr": "B: 너 또 알람 맞춰두는 거 깜빡했어?",
+        "en": "Did you forget to set the alarm again?",
+        "hint": "___ ___ ___ to ___ ___ ___ ___?"
+    },
+    {
+        "pattern": "216",
+        "kr": "설마 기억 안 난다는 건 아니겠지?",
+        "en": "Don’t tell me that you don’t remember.",
+        "hint": "Don’t ___ me ___ ___ ___ ___."
+    },
+    {
+        "pattern": "216",
+        "kr": "설마 또 마음을 바꿨다는 건 아니겠지?",
+        "en": "Don’t tell me you changed your mind again.",
+        "hint": "Don’t ___ me ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "216",
+        "kr": "설마 그한테 그것에 대해 묻는 거 까먹었다는 건 아니겠지?",
+        "en": "Don’t tell me you forgot to ask him about it.",
+        "hint": "Don’t ___ me ___ ___ to ___ ___ ___ it."
+    },
+    {
+        "pattern": "216",
+        "kr": "설마 수학 시험을 망쳤다는 건 아니겠지?",
+        "en": "Don’t tell me you bombed the math test.",
+        "hint": "Don’t ___ me ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "216",
+        "kr": "설마 여태까지 내내 졸고 있었던 건 아니겠지?",
+        "en": "Don’t tell me you’ve been dozing off the whole time.",
+        "hint": "Don’t ___ me ___ ___ ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "216",
+        "kr": "A: 흠… 저걸로 할까?",
+        "en": "Hm... Should I go with that one?",
+        "hint": "Hm... ___ I go ___ ___ ___?"
+    },
+    {
+        "pattern": "216",
+        "kr": "B: 설마 또 마음을 바꾼다고 하는 건 아니겠지? 5번째잖아!",
+        "en": "Don’t tell me you’re changing your mind again. For the fifth time!",
+        "hint": "Don’t ___ me ___ ___ ___ ___ ___. For ___ ___ ___!"
+    },
+    {
+        "pattern": "216",
+        "kr": "A: 결정을 못 내리겠어. 다 괜찮아 보이는 건 내 잘못이 아니잖아.",
+        "en": "I just can’t make up my mind. It’s not my fault that they all look so good!",
+        "hint": "I ___ ___ ___ up my ___. It’s ___ my ___ ___ ___ ___ ___ so ___!"
+    },
+    {
+        "pattern": "216",
+        "kr": "B: 30초내에 결정 안 내리면 난 갈거야.",
+        "en": "If you don’t choose in the next 30 seconds, I’m leaving.",
+        "hint": "If ___ ___ ___ in ___ ___ 30 ___, ___ ___."
+    },
+    {
+        "pattern": "217",
+        "kr": "라이언이 너 새 여자 친구 생겼다고 말하더라.",
+        "en": "Ryan tells me you’ve got a new girlfriend.",
+        "hint": "___ ___ me ___ ___ a ___ ___."
+    },
+    {
+        "pattern": "217",
+        "kr": "샐리가 너 승진 대상자라고 말하더라.",
+        "en": "Sally tells me that you’re up for a promotion.",
+        "hint": "___ ___ me ___ ___ up ___ a ___."
+    },
+    {
+        "pattern": "217",
+        "kr": "엠마가 너 임신했다고 말하더라.",
+        "en": "Emma tells me that you’re expecting.",
+        "hint": "___ ___ me ___ ___ ___."
+    },
+    {
+        "pattern": "217",
+        "kr": "에이든이 너 회사 그만두는 걸 고려 중이라고 말하더라.",
+        "en": "Aiden tells me you’re considering leaving the company.",
+        "hint": "___ ___ me ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "217",
+        "kr": "올리비아가 너 네 사업을 시작하는 걸 생각 중이라고 말하더라.",
+        "en": "Olivia tells me you’re thinking about starting your own business.",
+        "hint": "___ ___ me ___ ___ ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "217",
+        "kr": "A: 소피아가 너 다음 달에 결혼한다고 하더라. 축하해!",
+        "en": "Sophia tells me you’ll be walking down the aisle next month. Congratulations!",
+        "hint": "___ ___ me ___ be ___ ___ ___ ___ ___ ___. ___!"
+    },
+    {
+        "pattern": "217",
+        "kr": "B: 정말 고마워! 나 스스로도 아직 안 믿어져.",
+        "en": "Thanks so much! I still can’t believe it myself.",
+        "hint": "Thanks so ___! I ___ ___ ___ it ___."
+    },
+    {
+        "pattern": "217",
+        "kr": "A: 결혼 계획은 어떻게 되어가고 있니?",
+        "en": "How are the wedding plans coming along?",
+        "hint": "How ___ ___ ___ ___ ___ ___?"
+    },
+    {
+        "pattern": "217",
+        "kr": "B: 조촐하게 하려고 해. 가족하고 친한 친구들만 초대할 생각이야. 그래서 준비할 게 그렇게 많지는 않아.",
+        "en": "We’re keeping it low-key. It’s just going to be family and close friends. So there isn’t that much to do.",
+        "hint": "___ ___ it ___. It’s ___ ___ to be ___ ___ ___ ___. So ___ ___ ___ ___ to do."
+    },
+    {
+        "pattern": "218",
+        "kr": "진짜라니까! 내 말이 맞다니까.",
+        "en": "I’m telling you, I’m right!",
+        "hint": "___ ___ ___, ___ ___!"
+    },
+    {
+        "pattern": "218",
+        "kr": "진짜라니까! 쟤 거짓말하는 거야.",
+        "en": "I’m telling you, he’s lying.",
+        "hint": "___ ___ ___, ___ ___."
+    },
+    {
+        "pattern": "218",
+        "kr": "진짜라니까 이게 저것보다 낫다니까.",
+        "en": "I’m telling you, this is better than that one.",
+        "hint": "___ ___ ___, ___ is ___ ___ ___ ___."
+    },
+    {
+        "pattern": "218",
+        "kr": "진짜라니까! 내 평생 그런 거 본 적 없다니까!",
+        "en": "I’m telling you, I’ve never seen anything like it in my life!",
+        "hint": "___ ___ ___, ___ ___ ___ ___ ___ it in my ___!"
+    },
+    {
+        "pattern": "218",
+        "kr": "진짜라니까! 걔가 완전 날 무시하고 그냥 지나가 버렸다고.",
+        "en": "I’m telling you, he completely ignored me and just walked by me.",
+        "hint": "___ ___ ___, he ___ ___ me ___ ___ ___ by me."
+    },
+    {
+        "pattern": "218",
+        "kr": "A: 나 방금 여기 오는 길에 이바를 우연히 만났어. 걔 얼굴에 성형했더라.",
+        "en": "I just ran into Eva on my way here. She’s had work done on her face.",
+        "hint": "I ___ ___ ___ ___ on my ___ ___. ___ ___ ___ ___ on ___ ___."
+    },
+    {
+        "pattern": "218",
+        "kr": "B: 뭐라고? 장난하는 거지?",
+        "en": "What? You’re kidding, right?",
+        "hint": "What? ___ ___, ___?"
+    },
+    {
+        "pattern": "218",
+        "kr": "A: 진짜라니까, 걔 얼굴 못 알아볼 뻔 했어!",
+        "en": "I’m telling you, I almost didn’t recognize her!",
+        "hint": "___ ___ ___, I ___ ___ ___ ___!"
+    },
+    {
+        "pattern": "218",
+        "kr": "B: 믿을 수가 없어. 나도 봤어야 하는 건데.",
+        "en": "I can’t believe it. I’d love to have seen that.",
+        "hint": "I ___ ___ it. ___ ___ to ___ ___ ___."
+    },
+    {
+        "pattern": "219",
+        "kr": "이건 어때, 우리 같이 가는 거야.",
+        "en": "I’ll tell you what, we’ll go together.",
+        "hint": "I’ll ___ ___ ___, ___ go ___."
+    },
+    {
+        "pattern": "219",
+        "kr": "이건 어때, 네 방법대로 해 보고 어떻게 되나 한번 보자.",
+        "en": "I’ll tell you what, we’ll try it your way and see what happens.",
+        "hint": "I’ll ___ ___ ___, ___ ___ it ___ ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "219",
+        "kr": "이건 어때, 네가 내일 돌려준다고 약속하면 차 빌려 줄게.",
+        "en": "I’ll tell you what, I’ll let you borrow my car if you promise to return it tomorrow.",
+        "hint": "I’ll ___ ___ ___, I’ll ___ ___ ___ my ___ if ___ ___ to ___ it ___."
+    },
+    {
+        "pattern": "219",
+        "kr": "이건 어때, 내가 일단 이걸 끝내고 그거 한번 볼게.",
+        "en": "Tell you what, let me just finish this first and I’ll take a look at it.",
+        "hint": "Tell ___ ___, ___ me ___ ___ ___ ___ ___ I’ll ___ a ___ at it."
+    },
+    {
+        "pattern": "219",
+        "kr": "A: 겁쟁이같이 굴지마. 빨리 데이트 신청 해버려!",
+        "en": "Don’t be a chicken. Just ask her out already!",
+        "hint": "Don’t be a ___. ___ ___ ___ ___ ___!"
+    },
+    {
+        "pattern": "219",
+        "kr": "B: 안돼. 걔는 나하고는 급이 다른단 말이야. 그냥 거절해 버릴 거라고.",
+        "en": "I can’t. She’s out of my league. She’s just gonna say no.",
+        "hint": "I ___. ___ ___ of my ___. ___ ___ ___ ___ no."
+    },
+    {
+        "pattern": "219",
+        "kr": "A: 알았어. 이건 어때, 내가 너에 대해 좋게 말해 줘서 쟤가 너에 대해 막 궁금하게 만들게.",
+        "en": "All right. I’ll tell you what, I’ll talk you up and get her all curious about you.",
+        "hint": "___ ___. I’ll ___ ___ ___, I’ll ___ ___ up ___ ___ ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "219",
+        "kr": "B: 그런 다음 내가 걔한테 데이트 신청 하는 거구나. 멋진 계획인데! 고맙다, 짜식!",
+        "en": "Then I ask her out. What a great plan! Thanks, man!",
+        "hint": "Then I ___ ___ ___. What a ___ ___! Thanks, ___!"
+    },
+    {
+        "pattern": "220",
+        "kr": "난 네가 무슨 생각을 하고 있는지 알 수 있어.",
+        "en": "I can tell what you’re thinking.",
+        "hint": "I ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "220",
+        "kr": "난 네가 기분이 우울하면 항상 알 수 있어.",
+        "en": "I can always tell when you’re feeling down.",
+        "hint": "I ___ ___ ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "220",
+        "kr": "넌 나한테 할 말이 있구나.",
+        "en": "I can tell that you want to say something to me.",
+        "hint": "I ___ ___ ___ ___ ___ to ___ ___ to me."
+    },
+    {
+        "pattern": "220",
+        "kr": "난 네가 내 생각 하고 있다는 것을 알 수 있어.",
+        "en": "I can tell that you’re thinking about me.",
+        "hint": "I ___ ___ ___ ___ ___ ___ me."
+    },
+    {
+        "pattern": "220",
+        "kr": "난 네가 나한테 숨기는 뭔가가 있다는 것을 알 수 있어.",
+        "en": "I can tell there’s something you’re not telling me.",
+        "hint": "I ___ ___ ___ ___ ___ ___ ___ me."
+    },
+    {
+        "pattern": "220",
+        "kr": "A: 무슨 일이야?",
+        "en": "What’s wrong?",
+        "hint": "___ ___?"
+    },
+    {
+        "pattern": "220",
+        "kr": "B: 무슨 말이야? 아무 일 없어?",
+        "en": "What do you mean? There’s nothing wrong.",
+        "hint": "What do ___ ___? ___ ___ ___."
+    },
+    {
+        "pattern": "220",
+        "kr": "A: 뭔가가 너를 거슬리게 한다는 걸 알 수 있어. 나한테 얘기해도 돼.",
+        "en": "I can tell something’s bugging you. You know you can talk to me.",
+        "hint": "I ___ ___ ___ ___ ___. You ___ ___ ___ ___ to me."
+    },
+    {
+        "pattern": "220",
+        "kr": "B: 정말 고마워. 그렇게 말해 주니 너무 고마워. 하지만 난 괜찮아.",
+        "en": "Thanks a lot. That means a lot to me. But I’m okay.",
+        "hint": "Thanks a ___. ___ ___ a ___ to me. But ___ ___."
+    },
+    {
+        "pattern": "221",
+        "kr": "존이 어떤 반응을 보일지 도무지 알 수 없어.",
+        "en": "You can never tell how John will react.",
+        "hint": "You ___ ___ ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "221",
+        "kr": "릴리가 화난 건지 아닌지 도무지 알 수 없다니까.",
+        "en": "You can never tell if Lily is angry or not.",
+        "hint": "You ___ ___ ___ if ___ is ___ or ___."
+    },
+    {
+        "pattern": "221",
+        "kr": "걔가 무슨 생각을 하고 있는지 도무지 알 수 없어.",
+        "en": "You can never tell what she’s thinking.",
+        "hint": "You ___ ___ ___ ___ ___ ___."
+    },
+    {
+        "pattern": "221",
+        "kr": "그레이스가 언제 짜증 부릴지 도무지 알 수 없어.",
+        "en": "You can never tell when Grace is going to throw a tantrum.",
+        "hint": "You ___ ___ ___ ___ ___ is ___ to ___ a ___."
+    },
+    {
+        "pattern": "221",
+        "kr": "쟤가 뭘 할지 도무지 알 수 없다니까.",
+        "en": "You can never tell what he’s going to do.",
+        "hint": "You ___ ___ ___ ___ ___ ___ to do."
+    },
+    {
+        "pattern": "221",
+        "kr": "A: 요새 어때?",
+        "en": "How’s life treating you?",
+        "hint": "___ ___ ___ ___?"
+    },
+    {
+        "pattern": "221",
+        "kr": "B: 뭐, 맨날 그렇지. 야, 너 주식으로 돈 좀 벌었다며?",
+        "en": "You know, same old, same old. Hey, I hear you’ve made some money on stocks.",
+        "hint": "You ___, ___ ___, ___ ___. ___, I ___ ___ ___ ___ ___ on ___."
+    },
+    {
+        "pattern": "221",
+        "kr": "A: 뭐, 내가 운이 좀 좋았지. 그치만 너도 주식이라는 게 어떤지 알잖아. 이런 건 어떻게 될지 모르는 거잖아.",
+        "en": "Well, I got a little lucky. But you know how it is. You can never tell how these things will go.",
+        "hint": "Well, I ___ a ___ ___. But ___ ___ ___ it is. You ___ ___ ___ ___ ___ ___ ___ go."
+    },
+    {
+        "pattern": "221",
+        "kr": "B: 그래서 내가 주식투자에 전혀 안 끼는 거야. 난 모험하는 성격이 아니거든.",
+        "en": "That’s why I don’t take any part in it. I’m not a risk taker.",
+        "hint": "That’s ___ I ___ ___ ___ ___ in it. ___ ___ a ___ ___."
+    }
+];
+const patternVocab = {
+    "215": [
+        {
+            "word": "Please tell me (that)",
+            "ipa": "/pliːz tel mi ðæt/",
+            "meaning": "제발 ~라고 말해줘"
+        },
+        {
+            "word": "believe me",
+            "ipa": "/bɪˈliːv mi/",
+            "meaning": "내 말을 믿다"
+        },
+        {
+            "word": "all the way here",
+            "ipa": "/ɔːl ðə weɪ hɪr/",
+            "meaning": "여기까지 먼 길을"
+        },
+        {
+            "word": "for nothing",
+            "ipa": "/fɔːr ˈnʌθɪŋ/",
+            "meaning": "헛되이, 아무 성과 없이"
+        },
+        {
+            "word": "barely made it",
+            "ipa": "/ˈberli meɪd ɪt/",
+            "meaning": "간신히 시간에 맞추다"
+        },
+        {
+            "word": "just about to",
+            "ipa": "/dʒʌst əˈbaʊt tuː/",
+            "meaning": "막 ~하려는 참인"
+        },
+        {
+            "word": "That was close",
+            "ipa": "/ðæt wəz kloʊs/",
+            "meaning": "큰일 날 뻔했다"
+        }
+    ],
+    "216": [
+        {
+            "word": "Don’t tell me (that)",
+            "ipa": "/doʊnt tel mi ðæt/",
+            "meaning": "설마 ~라는 건 아니겠지?"
+        },
+        {
+            "word": "change your mind",
+            "ipa": "/tʃeɪndʒ jʊr maɪnd/",
+            "meaning": "마음을 바꾸다"
+        },
+        {
+            "word": "bomb the test",
+            "ipa": "/bɑːm ðə test/",
+            "meaning": "시험을 망치다"
+        },
+        {
+            "word": "doze off",
+            "ipa": "/doʊz ɔːf/",
+            "meaning": "깜빡 졸다"
+        },
+        {
+            "word": "make up my mind",
+            "ipa": "/meɪk ʌp maɪ maɪnd/",
+            "meaning": "결정을 내리다"
+        },
+        {
+            "word": "It’s not my fault",
+            "ipa": "/ɪts nɑːt maɪ fɔːlt/",
+            "meaning": "내 잘못이 아니다"
+        }
+    ],
+    "217": [
+        {
+            "word": "tells me (that)",
+            "ipa": "/telz mi ðæt/",
+            "meaning": "~라고 하더라, 듣자 하니"
+        },
+        {
+            "word": "up for a promotion",
+            "ipa": "/ʌp fɔːr ə prəˈmoʊʃn/",
+            "meaning": "승진 대상인"
+        },
+        {
+            "word": "expecting",
+            "ipa": "/ɪkˈspektɪŋ/",
+            "meaning": "임신한"
+        },
+        {
+            "word": "consider leaving",
+            "ipa": "/kənˈsɪdər ˈliːvɪŋ/",
+            "meaning": "그만두는 것을 고려하다"
+        },
+        {
+            "word": "walk down the aisle",
+            "ipa": "/wɔːk daʊn ði aɪl/",
+            "meaning": "결혼하다"
+        },
+        {
+            "word": "coming along",
+            "ipa": "/ˈkʌmɪŋ əˈlɔːŋ/",
+            "meaning": "진행되어 가는"
+        },
+        {
+            "word": "low-key",
+            "ipa": "/ˌloʊ ˈkiː/",
+            "meaning": "조촐한, 절제된"
+        }
+    ],
+    "218": [
+        {
+            "word": "I’m telling you",
+            "ipa": "/aɪm ˈtelɪŋ juː/",
+            "meaning": "진짜라니까, 내 말 믿어"
+        },
+        {
+            "word": "better than",
+            "ipa": "/ˈbetər ðæn/",
+            "meaning": "~보다 나은"
+        },
+        {
+            "word": "ignore",
+            "ipa": "/ɪɡˈnɔːr/",
+            "meaning": "무시하다"
+        },
+        {
+            "word": "walk by",
+            "ipa": "/wɔːk baɪ/",
+            "meaning": "지나가다"
+        },
+        {
+            "word": "run into",
+            "ipa": "/rʌn ˈɪntuː/",
+            "meaning": "우연히 마주치다"
+        },
+        {
+            "word": "have work done",
+            "ipa": "/hæv wɜːrk dʌn/",
+            "meaning": "성형/시술을 받다"
+        },
+        {
+            "word": "recognize",
+            "ipa": "/ˈrekəɡnaɪz/",
+            "meaning": "알아보다"
+        }
+    ],
+    "219": [
+        {
+            "word": "I’ll tell you what",
+            "ipa": "/aɪl tel ju wʌt/",
+            "meaning": "이건 어때, 이렇게 하자"
+        },
+        {
+            "word": "see what happens",
+            "ipa": "/siː wʌt ˈhæpənz/",
+            "meaning": "어떻게 되는지 보다"
+        },
+        {
+            "word": "borrow my car",
+            "ipa": "/ˈbɑːroʊ maɪ kɑːr/",
+            "meaning": "내 차를 빌리다"
+        },
+        {
+            "word": "Don’t be a chicken",
+            "ipa": "/doʊnt bi ə ˈtʃɪkɪn/",
+            "meaning": "겁내지 마"
+        },
+        {
+            "word": "ask her out",
+            "ipa": "/æsk hər aʊt/",
+            "meaning": "데이트 신청하다"
+        },
+        {
+            "word": "out of my league",
+            "ipa": "/aʊt əv maɪ liːɡ/",
+            "meaning": "나와는 급이 다른"
+        },
+        {
+            "word": "talk you up",
+            "ipa": "/tɔːk ju ʌp/",
+            "meaning": "좋게 말해주다, 띄워주다"
+        }
+    ],
+    "220": [
+        {
+            "word": "I can tell",
+            "ipa": "/aɪ kæn tel/",
+            "meaning": "알 수 있어, 티가 나"
+        },
+        {
+            "word": "feeling down",
+            "ipa": "/ˈfiːlɪŋ daʊn/",
+            "meaning": "기분이 우울한"
+        },
+        {
+            "word": "There’s something",
+            "ipa": "/ðerz ˈsʌmθɪŋ/",
+            "meaning": "뭔가가 있다"
+        },
+        {
+            "word": "What’s wrong?",
+            "ipa": "/wʌts rɔːŋ/",
+            "meaning": "무슨 일이야?"
+        },
+        {
+            "word": "bugging you",
+            "ipa": "/ˈbʌɡɪŋ juː/",
+            "meaning": "너를 신경 쓰이게 하는"
+        },
+        {
+            "word": "That means a lot to me",
+            "ipa": "/ðæt miːnz ə lɑːt tu mi/",
+            "meaning": "그 말이 큰 힘/의미가 돼"
+        }
+    ],
+    "221": [
+        {
+            "word": "You can never tell",
+            "ipa": "/ju kæn ˈnevər tel/",
+            "meaning": "도무지 알 수 없다"
+        },
+        {
+            "word": "react",
+            "ipa": "/riˈækt/",
+            "meaning": "반응하다"
+        },
+        {
+            "word": "throw a tantrum",
+            "ipa": "/θroʊ ə ˈtæntrəm/",
+            "meaning": "짜증/생떼를 부리다"
+        },
+        {
+            "word": "same old, same old",
+            "ipa": "/seɪm oʊld seɪm oʊld/",
+            "meaning": "맨날 똑같지"
+        },
+        {
+            "word": "stocks",
+            "ipa": "/stɑːks/",
+            "meaning": "주식"
+        },
+        {
+            "word": "take part in",
+            "ipa": "/teɪk pɑːrt ɪn/",
+            "meaning": "~에 참여하다"
+        },
+        {
+            "word": "risk taker",
+            "ipa": "/rɪsk ˈteɪkər/",
+            "meaning": "위험을 감수하는 사람"
+        }
+    ]
+};
+const sentenceVocab = {};
+function getVocabForQuestion(q) {
+    const patternItems = patternVocab[q.pattern] || [];
+    const sentenceItems = sentenceVocab[q.id] || [];
+    const seen = new Set(); const merged = [];
+    [...sentenceItems, ...patternItems].forEach(item => { const key = item.word.toLowerCase(); if (!seen.has(key)) { seen.add(key); merged.push(item); } });
+    return merged.slice(0, 5);
+}
+function renderVocabHtml(vocab) {
+    if (!vocab.length) return '';
+    return `<div class="mt-3 pt-3 border-t border-indigo-100"><p class="text-xs font-semibold text-indigo-600 mb-2">📖 핵심 단어 · 숙어</p><ul class="space-y-1.5">${vocab.map(v => `<li class="text-sm leading-relaxed"><span class="font-semibold text-slate-800">${v.word}</span><span class="text-slate-500 font-mono text-xs ml-1">${v.ipa}</span><span class="text-slate-600"> — ${v.meaning}</span></li>`).join('')}</ul></div>`;
+}
+let questions = rawData.map((item, idx) => ({ ...item, id: idx, wrongCount: 0 }));
+let currentDisplayList = [...questions]; let currentMode = "all";
+function renderQuestions() {
+    const area = document.getElementById('content-area'); area.innerHTML = '';
+    if (currentDisplayList.length === 0) { area.innerHTML = `<div class="text-center py-12 bg-white rounded-xl border border-slate-200"><p class="text-slate-500 text-lg">조건에 맞는 문장이 없습니다. 5회 이상 틀린 문장이 아직 없거나 초기화되었습니다.</p></div>`; return; }
+    currentDisplayList.forEach((q) => {
+        const vocab = getVocabForQuestion(q); const card = document.createElement('div');
+        card.className = "bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center transition-all hover:border-indigo-300";
+        if (q.wrongCount >= 5) card.className += " border-rose-300 bg-rose-50/30";
+        card.innerHTML = `<div class="flex-1 w-full"><div class="flex items-center gap-2 mb-2"><span class="pattern-badge">Pattern ${q.pattern}</span>${q.wrongCount >= 5 ? '<span class="bg-rose-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded">집중 복습</span>' : ''}</div><p class="text-base font-semibold text-slate-800">${q.kr}</p></div><div class="w-full md:w-auto flex flex-col sm:flex-row gap-4 items-start sm:items-center md:justify-end"><div class="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-1"><button onclick="changeCount(${q.id}, -1)" class="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded flex items-center justify-center font-bold hover:bg-slate-50 active:scale-95 transition text-xs">-</button><span id="counter-val-${q.id}" class="px-3 font-bold text-sm ${q.wrongCount >= 5 ? 'text-rose-600' : 'text-slate-700'}">틀림: ${q.wrongCount}회</span><button onclick="changeCount(${q.id}, 1)" class="w-7 h-7 bg-rose-500 text-white rounded flex items-center justify-center font-bold hover:bg-rose-600 active:scale-95 transition text-xs">+</button></div><div class="flex-1 sm:flex-initial w-full min-w-[260px] space-y-2"><div class="flex gap-2"><button onclick="toggleElement('hint-${q.id}')" class="flex-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-3 rounded-lg font-medium transition">💡 힌트 보기</button><button onclick="toggleElement('answer-${q.id}')" class="flex-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 py-1.5 px-3 rounded-lg font-medium transition">✅ 정답 확인</button></div><div id="hint-${q.id}" class="hidden-text text-sm text-indigo-600 font-mono italic bg-indigo-50/60 p-2 rounded-md border border-indigo-100">${q.hint}</div><div id="answer-${q.id}" class="hidden-text text-base font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 py-1 bg-slate-50/50 p-2 rounded-r-md"><p>${q.en}</p>${renderVocabHtml(vocab)}</div></div></div>`;
+        area.appendChild(card);
+    });
+}
+function changeCount(id, amount) { const item = questions.find(q => q.id === id); if (item) { item.wrongCount = Math.max(0, item.wrongCount + amount); const label = document.getElementById(`counter-val-${id}`); if (label) { label.innerText = `틀림: ${item.wrongCount}회`; label.className = item.wrongCount >= 5 ? "px-3 font-bold text-sm text-rose-600" : "px-3 font-bold text-sm text-slate-700"; } if (currentMode === "filtered") setTimeout(() => filterHardQuestions(), 400); } }
+function shuffleQuestions() { currentMode = "shuffled"; for (let i = currentDisplayList.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [currentDisplayList[i], currentDisplayList[j]] = [currentDisplayList[j], currentDisplayList[i]]; } document.getElementById('filter-status').innerText = `현재 상태: 무작위 순서 섞기 완료 (${currentDisplayList.length}문장)`; renderQuestions(); }
+function showOriginalOrder() { currentMode = "all"; currentDisplayList = [...questions].sort((a, b) => a.id - b.id); document.getElementById('filter-status').innerText = `현재 상태: 원래 전체 순서 보기 (총 ${questions.length}문장)`; renderQuestions(); }
+function filterHardQuestions() { currentMode = "filtered"; currentDisplayList = questions.filter(q => q.wrongCount >= 5); document.getElementById('filter-status').innerText = `현재 상태: ⚠️ 5회 이상 틀린 취약 문장만 보기 (${currentDisplayList.length}문장)`; renderQuestions(); }
+function resetAllCounts() { if (confirm("모든 문장의 틀린 횟수 누적 데이터를 초기화하시겠습니까?")) { questions.forEach(q => q.wrongCount = 0); if (currentMode === "filtered") currentDisplayList = []; else if (currentMode === "all") currentDisplayList = [...questions].sort((a, b) => a.id - b.id); renderQuestions(); alert("틀린 횟수가 모두 초기화되었습니다."); } }
+function toggleElement(id) { const el = document.getElementById(id); if (el) { if (el.classList.contains('hidden-text')) { el.classList.remove('hidden-text'); el.classList.add('visible-text'); } else { el.classList.remove('visible-text'); el.classList.add('hidden-text'); } } }
+renderQuestions();
+</script>
+</body>
+</html>

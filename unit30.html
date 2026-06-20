@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPIc Unit 30 오답노트 학습기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+        .hidden-text { display: none; }
+        .visible-text { display: block; }
+        .pattern-badge { background-color: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto">
+        <a href="index.html" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 mb-4 transition">
+            ← 메인으로 돌아가기
+        </a>
+
+        <header class="mb-8 text-center bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">OPIc Unit 30 학습기 (v2)</h1>
+            <p class="text-slate-600 mb-6">틀린 횟수를 체크하고, 5회 이상 틀린 취약 문장들을 집중적으로 복습해보세요!</p>
+            
+            <div class="flex flex-wrap justify-center gap-3">
+                <button onclick="shuffleQuestions()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    🔄 문제 섞기
+                </button>
+                <button onclick="showOriginalOrder()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    📋 원래 전체 순서로 보기
+                </button>
+                <button onclick="filterHardQuestions()" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    ⚠️ 5회 이상 틀린 문제만 보기
+                </button>
+                <button onclick="resetAllCounts()" class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    🧹 카운트 전체 초기화
+                </button>
+            </div>
+            <div id="filter-status" class="mt-4 text-sm font-medium text-indigo-600">
+                현재 상태: 전체 항목 보기 (총 70문장)
+            </div>
+        </header>
+
+        <div id="content-area" class="space-y-4">
+            <!-- Questions will be dynamically injected here -->
+        </div>
+    </div>
+
+    <script>
+        const rawData = [
+            {
+                        "pattern": "207",
+                        "kr": "너 지금 도와주지도 않을 거라고 말하는 거야?",
+                        "en": "Are you saying you're not even gonna help?",
+                        "hint": "Are you saying you're not even gonna ___?"
+            },
+            {
+                        "pattern": "207",
+                        "kr": "너 지금 이 계획이 실패할 거라고 말하는 거야?",
+                        "en": "Are you saying that this plan won't work?",
+                        "hint": "Are you saying that this ___ won't ___?"
+            },
+            {
+                        "pattern": "207",
+                        "kr": "너 지금 날 안 믿는다고 말하는 거야?",
+                        "en": "Are you saying you don't trust me?",
+                        "hint": "Are you saying you don't ___ me?"
+            },
+            {
+                        "pattern": "207",
+                        "kr": "너 지금 내가 할 일 없이 빈둥대기만 한다고 말하는 거야?",
+                        "en": "Are you saying I have no life?",
+                        "hint": "Are you saying I have no ___?"
+            },
+            {
+                        "pattern": "207",
+                        "kr": "너 지금 해 보지도 않고 포기할 거라고 말하는 거야?",
+                        "en": "Are you saying you're going to give up without even trying?",
+                        "hint": "Are you saying you're going to ___ ___ without even ___?"
+            },
+            {
+                        "pattern": "207",
+                        "kr": "A: 교수님한테 말씀드려서 리포트 제출 기한을 연장받아야 할 것 같아.",
+                        "en": "I'm gonna have to ask the professor to give me an extension on the paper.",
+                        "hint": "I'm gonna have to ask the ___ to give me an ___ on the ___."
+            },
+            {
+                        "pattern": "207",
+                        "kr": "B: 안 될걸. 교수님이 마감일에 대해서 어떤지 너도 알잖아.",
+                        "en": "Not gonna happen. You know how he is about deadlines.",
+                        "hint": "Not gonna ___. You know how he is about ___."
+            },
+            {
+                        "pattern": "207",
+                        "kr": "A: 생각해 보시지도 않을 거란 말이야?",
+                        "en": "Are you saying he's not even going to consider it?",
+                        "hint": "Are you saying he's not even going to ___ it?"
+            },
+            {
+                        "pattern": "207",
+                        "kr": "B: 규칙에 대해 엄청 까다로우신 분이잖아.",
+                        "en": "He's a real stickler for rules.",
+                        "hint": "He's a real ___ for ___."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "난 그거 시도해 볼 만한 가치가 있다고 말하는 거야.",
+                        "en": "All I'm saying is it's worth a try.",
+                        "hint": "All I'm saying is it's worth a ___."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "난 너희들이 대화로 푸는 게 좋을 것 같다고 말하는 거야.",
+                        "en": "All I'm saying is you guys should talk it out.",
+                        "hint": "All I'm saying is you guys should ___ it ___."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "난 걔 제안을 고려해 보라고 말하는 것뿐이야.",
+                        "en": "All I'm saying is you should consider his suggestion.",
+                        "hint": "All I'm saying is you should ___ his ___."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "내 말은 네가 직접 걔한테 물어보라는 거야.",
+                        "en": "All I'm saying is you should ask him yourself.",
+                        "hint": "All I'm saying is you should ask him ___."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "난 네가 때때로 사람들한테 친절하게 구는 것도 나쁘지 않을 거라고 말하는 거야.",
+                        "en": "All I'm saying is you can try being nice to people once in a while.",
+                        "hint": "All I'm saying is you can try being ___ to people once in a ___."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "A: 네가 탐한테 한 말은 좀 심했어.",
+                        "en": "What you said to Tom wasn't very nice.",
+                        "hint": "What you said to Tom wasn't very ___."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "B: 뭐? 걘 그럴 만 돼도 싸다고. 게다가 그건 사실이잖아.",
+                        "en": "What? He deserved it. Besides, it's true.",
+                        "hint": "What? He ___ it. Besides, it's ___."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "A: 그렇게 하지만, 내 말은 네가 그걸 좀 더 요령있게 말할 수도 있었다는 거야.",
+                        "en": "Yes, but all I'm saying is you could have been a bit more diplomatic about it.",
+                        "hint": "Yes, but all I'm saying is you could have been a bit more ___ about it."
+            },
+            {
+                        "pattern": "208",
+                        "kr": "B: 뭐… 네 말이 맞는 것 같네.",
+                        "en": "Well, I guess you're right.",
+                        "hint": "Well, I ___ you're ___."
+            },
+            {
+                        "pattern": "209",
+                        "kr": "정말이지, 자넨 내 기대치를 넘어섰군.",
+                        "en": "I have to say, you exceeded my expectations.",
+                        "hint": "I have to say, you ___ my ___."
+            },
+            {
+                        "pattern": "209",
+                        "kr": "정말이지, 넌 정말 날 실망시켰어.",
+                        "en": "I have to say, you really disappointed me.",
+                        "hint": "I have to say, you really ___ me."
+            },
+            {
+                        "pattern": "209",
+                        "kr": "정말이지, 네 덕분에 기분이 한결 나아졌어.",
+                        "en": "I have to say, you made me feel so much better.",
+                        "hint": "I have to say, you made me feel so much ___."
+            },
+            {
+                        "pattern": "209",
+                        "kr": "정말이지, 너 그 재킷이 정말 잘 어울리는걸.",
+                        "en": "I have to say, you look fantastic in that jacket.",
+                        "hint": "I have to say, you look ___ in that ___."
+            },
+            {
+                        "pattern": "209",
+                        "kr": "정말이지, 이 식당에 와 보길 잘했어.",
+                        "en": "I have to say, I'm glad we tried this restaurant.",
+                        "hint": "I have to say, I'm ___ we tried this ___."
+            },
+            {
+                        "pattern": "209",
+                        "kr": "A: 나 어때?",
+                        "en": "How do I look?",
+                        "hint": "How do I ___?"
+            },
+            {
+                        "pattern": "209",
+                        "kr": "B: 우와! 정말 멋진걸!",
+                        "en": "Wow! You look stunning!",
+                        "hint": "Wow! You look ___!"
+            },
+            {
+                        "pattern": "209",
+                        "kr": "A: 이거 첫 데이트 옷으로 괜찮은 것 같니?",
+                        "en": "Do you think this is a good first date outfit?",
+                        "hint": "Do you think this is a good first date ___?"
+            },
+            {
+                        "pattern": "209",
+                        "kr": "B: 딱 좋아. 정말이지, 이거 너한테 너무 잘 어울린다. 그 남자가 너한테서 시선을 뗄 수가 없을 거야.",
+                        "en": "It's perfect. And I have to say, it really becomes you. He won't be able to take his eyes off of you.",
+                        "hint": "It's ___. And I have to say, it really ___ you. He won't be able to take his eyes ___ of you."
+            },
+            {
+                        "pattern": "210",
+                        "kr": "그 남자가 오늘 밤에 너한테 프러포즈한다고 치자.",
+                        "en": "Let's say he proposes to you tonight.",
+                        "hint": "Let's say he ___ to you tonight."
+            },
+            {
+                        "pattern": "210",
+                        "kr": "네가 개한테 우리를 도와달라고 설득한다고 치자.",
+                        "en": "Let's say you convince him to help us.",
+                        "hint": "Let's say you ___ him to ___ us."
+            },
+            {
+                        "pattern": "210",
+                        "kr": "네가 지금 막 이상형의 여자를 만났다고 치자.",
+                        "en": "Let's say you just met the girl of your dreams.",
+                        "hint": "Let's say you just met the girl of your ___."
+            },
+            {
+                        "pattern": "210",
+                        "kr": "쟤가 네 핑계를 믿어준다고 치자.",
+                        "en": "Let's say he believes your excuse.",
+                        "hint": "Let's say he ___ your ___."
+            },
+            {
+                        "pattern": "210",
+                        "kr": "내가 그것에 대해 뭔가를 안다고 치자. 하지만 난 너한테 아무 말도 안 할 거야.",
+                        "en": "Let's say I know something about it. I'm not going to tell you.",
+                        "hint": "Let's say I know ___ about it. I'm not going to ___ you."
+            },
+            {
+                        "pattern": "210",
+                        "kr": "A: 이 계획 추진하자. 어떻게든 되겠지.",
+                        "en": "Let's go ahead with the plan. We'll manage.",
+                        "hint": "Let's go ___ with the plan. We'll ___."
+            },
+            {
+                        "pattern": "210",
+                        "kr": "B: 미쳤어? 인력이 부족하잖아.",
+                        "en": "Are you crazy? We don't have enough manpower.",
+                        "hint": "Are you crazy? We don't have enough ___."
+            },
+            {
+                        "pattern": "210",
+                        "kr": "A: 알았어. 내가 인사부에 있는 몇 명한테 와서 도와달라고 하면 어때?",
+                        "en": "All right. How about I ask some people from HR to come in and help us?",
+                        "hint": "All right. How about I ask some people from ___ to come in and help us?"
+            },
+            {
+                        "pattern": "210",
+                        "kr": "B: 그래. 그 사람들이 우리 일을 도와준다고 치자. 그래도 자금 문제가 남아 있다고.",
+                        "en": "Okay. Let's say we get them on board. There's still the issue of funds.",
+                        "hint": "Okay. Let's say we get them on ___. There's still the issue of ___."
+            },
+            {
+                        "pattern": "211",
+                        "kr": "개가 다시는 나한테 연락 받을 일은 없을 거라고만 말해 두지.",
+                        "en": "Let's just say he won't be hearing from me again.",
+                        "hint": "Let's just say he won't be ___ from me ___."
+            },
+            {
+                        "pattern": "211",
+                        "kr": "넌 알고 싶지 않을 거라고만 말해 둘게.",
+                        "en": "Let's just say you don't want to know.",
+                        "hint": "Let's just say you don't want to ___."
+            },
+            {
+                        "pattern": "211",
+                        "kr": "그 여자 다시 보고 싶지 않다고만 말해 둘게.",
+                        "en": "Let's just say I don't want to see her again.",
+                        "hint": "Let's just say I don't want to ___ her ___."
+            },
+            {
+                        "pattern": "211",
+                        "kr": "개하고 나하고 의견 차이가 있다고만 말할게.",
+                        "en": "Let's just say she and I have differences in opinion.",
+                        "hint": "Let's just say she and I have differences in ___."
+            },
+            {
+                        "pattern": "211",
+                        "kr": "정말 즐거운 시간을 보냈다고만 말해 둘게.",
+                        "en": "Let's just say I had a wonderful time.",
+                        "hint": "Let's just say I had a ___ time."
+            },
+            {
+                        "pattern": "211",
+                        "kr": "A: 거기 안에서 무슨 일이 있었던 거야? 너네 대판 싸우는 것 같이 들리던걸.",
+                        "en": "What happened in there? It sounded like you guys were really going at it.",
+                        "hint": "What happened in there? It sounded like you guys were really ___ at it."
+            },
+            {
+                        "pattern": "211",
+                        "kr": "B: 응, 좀 격해졌지.",
+                        "en": "Yeah, things got a little heated.",
+                        "hint": "Yeah, things got a little ___."
+            },
+            {
+                        "pattern": "211",
+                        "kr": "A: 화해를 할 수 없었나보지?",
+                        "en": "You couldn't reconcile, I guess?",
+                        "hint": "You couldn't ___, I guess?"
+            },
+            {
+                        "pattern": "211",
+                        "kr": "B: 당분간은 우리 서로 얘기할 일 없을 거라고만 말해둘게.",
+                        "en": "Let's just say we won't be talking to each other anytime soon.",
+                        "hint": "Let's just say we won't be talking to each other anytime ___."
+            },
+            {
+                        "pattern": "212",
+                        "kr": "그건 네가 다른 사람들보다 낫다고 말하는 거나 마찬가지야.",
+                        "en": "It's like saying you're better than everyone else.",
+                        "hint": "It's like saying you're ___ than everyone ___."
+            },
+            {
+                        "pattern": "212",
+                        "kr": "그건 네가 사실은 졌는데도 이겼다고 말하는 거나 마찬가지야.",
+                        "en": "That's like saying you won when you really lost.",
+                        "hint": "That's like saying you ___ when you really ___."
+            },
+            {
+                        "pattern": "212",
+                        "kr": "그건 그게 전부 내 책임이라고 말하는 거나 마찬가지잖아.",
+                        "en": "It's like saying it's all my responsibility.",
+                        "hint": "It's like saying it's all my ___."
+            },
+            {
+                        "pattern": "212",
+                        "kr": "그건 시험에서 커닝해도 괜찮다고 말하는 거나 마찬가지야.",
+                        "en": "That's like saying it's okay to cheat on exams.",
+                        "hint": "That's like saying it's okay to ___ on ___."
+            },
+            {
+                        "pattern": "212",
+                        "kr": "A: 우리 프로젝트 아쉽다. 잘 안돼서 실망이야.",
+                        "en": "It's too bad about our project. I'm bummed that it didn't work out.",
+                        "hint": "It's too bad about our project. I'm ___ that it didn't work ___."
+            },
+            {
+                        "pattern": "212",
+                        "kr": "B: 나도 그래. 내가 뭔가 더 할 수 있었을 거라는 생각을 자꾸하게 돼.",
+                        "en": "Me too. I keep thinking I could've done something more.",
+                        "hint": "Me too. I keep thinking I could've done ___ ___."
+            },
+            {
+                        "pattern": "212",
+                        "kr": "A: 그런 말 하지 마. 그건 이게 너만의 프로젝트라고 말하는 거나 마찬가지라고. 우리 이거 같이 한 거잖아.",
+                        "en": "Don't say that. That's like saying this was just your project. We did it together.",
+                        "hint": "Don't say that. That's like saying this was just your ___. We did it ___."
+            },
+            {
+                        "pattern": "212",
+                        "kr": "B: 고마워. 하지만 적어도 우리는 최선을 다했잖아.",
+                        "en": "Thanks. At least we did our best.",
+                        "hint": "Thanks. At least we did our ___."
+            },
+            {
+                        "pattern": "213",
+                        "kr": "걘 좀 이상해, 아무리 좋게 봐도 말이야.",
+                        "en": "He's a little weird, to say the least.",
+                        "hint": "He's a little ___, to say the ___."
+            },
+            {
+                        "pattern": "213",
+                        "kr": "결과가 만족스럽지 않았어, 아무리 좋게 봐도 말이야.",
+                        "en": "I wasn't happy with the results, to say the least.",
+                        "hint": "I wasn't happy with the ___, to say the ___."
+            },
+            {
+                        "pattern": "213",
+                        "kr": "그 소식 때문에 정말 속상했어, 과장하지 않고 말이야.",
+                        "en": "The news was real upsetting, to say the least.",
+                        "hint": "The news was real ___, to say the ___."
+            },
+            {
+                        "pattern": "213",
+                        "kr": "서비스가 형편없었어, 과장하지 않고 말이야.",
+                        "en": "The service was horrible, to say the least.",
+                        "hint": "The service was ___, to say the ___."
+            },
+            {
+                        "pattern": "213",
+                        "kr": "그래, 나 너한테 화났어, 과장하지 않고 말이야.",
+                        "en": "Yeah, I'm mad at you, to say the least.",
+                        "hint": "Yeah, I'm ___ at you, to say the ___."
+            },
+            {
+                        "pattern": "213",
+                        "kr": "A: 너 길 건너편에 새로 생긴 이탈리안 식당 알아? 지난 주말에 친구하고 거기 갔었어.",
+                        "en": "You know that new Italian place across the street? I went there with a friend of mine last weekend.",
+                        "hint": "You know that new Italian place across the ___? I went there with a friend of mine last ___."
+            },
+            {
+                        "pattern": "213",
+                        "kr": "B: 아 그래? 어땠어?",
+                        "en": "Oh yeah? How was it?",
+                        "hint": "Oh yeah? How was ___?"
+            },
+            {
+                        "pattern": "213",
+                        "kr": "A: 강추야. 음식하고 서비스 둘 다 최고였어. 과장 하나도 안 하고 말이야.",
+                        "en": "I highly recommend it. The food and service were both superb, to say the least.",
+                        "hint": "I highly ___ it. The food and service were both ___, to say the ___."
+            },
+            {
+                        "pattern": "213",
+                        "kr": "B: 정말? 곧 가봐야겠다!",
+                        "en": "Really? I should check it out soon!",
+                        "hint": "Really? I should check it ___ soon!"
+            },
+            {
+                        "pattern": "214",
+                        "kr": "넌 항상 네가 무슨 대단한 사람인 것처럼 말하더라.",
+                        "en": "You always talk about how you're so special.",
+                        "hint": "You always talk about how you're so ___."
+            },
+            {
+                        "pattern": "214",
+                        "kr": "걘 툭 하면 자기가 여자한테 인기 많다고 말하더라고.",
+                        "en": "He always talks about how he's so good with women.",
+                        "hint": "He always talks about how he's so good with ___."
+            },
+            {
+                        "pattern": "214",
+                        "kr": "제인은 자기가 남자들하고는 끝이라고 얘기하더라고.",
+                        "en": "Jane talked about how she is done with men.",
+                        "hint": "Jane talked about how she is done with ___."
+            },
+            {
+                        "pattern": "214",
+                        "kr": "조던은 자기가 엄청 잘 나가는 비즈니스맨이라고 얘기하더라.",
+                        "en": "Jordan talked about how he's a hotshot businessman.",
+                        "hint": "Jordan talked about how he's a ___ ___."
+            },
+            {
+                        "pattern": "214",
+                        "kr": "A: 나 직장 그만두고 가수로서의 꿈을 쫓기로 했어.",
+                        "en": "I've decided to quit my job and pursue my dream as a singer.",
+                        "hint": "I've decided to ___ my job and ___ my dream as a ___."
+            },
+            {
+                        "pattern": "214",
+                        "kr": "B: 아, 그렇구나.",
+                        "en": "Oh. Okay.",
+                        "hint": "Oh. ___."
+            },
+            {
+                        "pattern": "214",
+                        "kr": "A: 반응이 왜 그래? 너도 함께 기뻐해줄 줄 알았는데.",
+                        "en": "What's with the response? I thought you'd be excited for me.",
+                        "hint": "What's with the ___? I thought you'd be ___ for me."
+            },
+            {
+                        "pattern": "214",
+                        "kr": "B: 응. 근데 넌 툭하면 뭔가 정말 멋진 걸 하겠다고 하잖아. 그리고 나선 마음을 바꾸잖아.",
+                        "en": "Yeah, but you always talk about how you're going to do something really cool. Then you change your mind.",
+                        "hint": "Yeah, but you always talk about how you're going to do something really ___. Then you change your ___."
+            }
+];
+
+        const patternVocab = {
+            "207": [
+                        {
+                                    "word": "Are you saying",
+                                    "ipa": "/ɑːr juː ˈseɪɪŋ/",
+                                    "meaning": "~라고 말하는 거야? / 그런 뜻이야?"
+                        },
+                        {
+                                    "word": "not even",
+                                    "ipa": "/nɑːt ˈiːvən/",
+                                    "meaning": "심지어 ~도 아닌"
+                        },
+                        {
+                                    "word": "give up",
+                                    "ipa": "/ɡɪv ʌp/",
+                                    "meaning": "포기하다"
+                        },
+                        {
+                                    "word": "extension",
+                                    "ipa": "/ɪkˈstenʃn/",
+                                    "meaning": "연장, 기한 연장"
+                        },
+                        {
+                                    "word": "deadline",
+                                    "ipa": "/ˈdedlaɪn/",
+                                    "meaning": "마감일"
+                        },
+                        {
+                                    "word": "consider",
+                                    "ipa": "/kənˈsɪdər/",
+                                    "meaning": "고려하다"
+                        },
+                        {
+                                    "word": "stickler for rules",
+                                    "ipa": "/ˈstɪklər fɔːr ruːlz/",
+                                    "meaning": "규칙에 엄격한 사람"
+                        }
+            ],
+            "208": [
+                        {
+                                    "word": "All I'm saying is",
+                                    "ipa": "/ɔːl aɪm ˈseɪɪŋ ɪz/",
+                                    "meaning": "내 말은 단지 ~라는 거야"
+                        },
+                        {
+                                    "word": "worth a try",
+                                    "ipa": "/wɜːrθ ə traɪ/",
+                                    "meaning": "시도해 볼 만한 가치가 있는"
+                        },
+                        {
+                                    "word": "talk it out",
+                                    "ipa": "/tɔːk ɪt aʊt/",
+                                    "meaning": "대화로 풀다"
+                        },
+                        {
+                                    "word": "consider",
+                                    "ipa": "/kənˈsɪdər/",
+                                    "meaning": "고려하다"
+                        },
+                        {
+                                    "word": "once in a while",
+                                    "ipa": "/wʌns ɪn ə waɪl/",
+                                    "meaning": "가끔, 때때로"
+                        },
+                        {
+                                    "word": "deserve",
+                                    "ipa": "/dɪˈzɜːrv/",
+                                    "meaning": "~할 만하다"
+                        },
+                        {
+                                    "word": "diplomatic",
+                                    "ipa": "/ˌdɪpləˈmætɪk/",
+                                    "meaning": "요령 있는, 외교적인"
+                        }
+            ],
+            "209": [
+                        {
+                                    "word": "I have to say",
+                                    "ipa": "/aɪ hæv tə seɪ/",
+                                    "meaning": "정말이지, 솔직히 말해서"
+                        },
+                        {
+                                    "word": "exceed expectations",
+                                    "ipa": "/ɪkˈsiːd ˌekspekˈteɪʃnz/",
+                                    "meaning": "기대를 넘어서다"
+                        },
+                        {
+                                    "word": "disappoint",
+                                    "ipa": "/ˌdɪsəˈpɔɪnt/",
+                                    "meaning": "실망시키다"
+                        },
+                        {
+                                    "word": "fantastic",
+                                    "ipa": "/fænˈtæstɪk/",
+                                    "meaning": "멋진, 훌륭한"
+                        },
+                        {
+                                    "word": "stunning",
+                                    "ipa": "/ˈstʌnɪŋ/",
+                                    "meaning": "아주 멋진, 눈부신"
+                        },
+                        {
+                                    "word": "become you",
+                                    "ipa": "/bɪˈkʌm juː/",
+                                    "meaning": "너에게 잘 어울리다"
+                        },
+                        {
+                                    "word": "take one's eyes off",
+                                    "ipa": "/teɪk wʌnz aɪz ɔːf/",
+                                    "meaning": "눈을 떼다"
+                        }
+            ],
+            "210": [
+                        {
+                                    "word": "Let's say",
+                                    "ipa": "/lets seɪ/",
+                                    "meaning": "~라고 치자, 가정해 보자"
+                        },
+                        {
+                                    "word": "propose",
+                                    "ipa": "/prəˈpoʊz/",
+                                    "meaning": "청혼하다, 제안하다"
+                        },
+                        {
+                                    "word": "convince",
+                                    "ipa": "/kənˈvɪns/",
+                                    "meaning": "설득하다"
+                        },
+                        {
+                                    "word": "excuse",
+                                    "ipa": "/ɪkˈskjuːs/",
+                                    "meaning": "핑계, 변명"
+                        },
+                        {
+                                    "word": "go ahead with",
+                                    "ipa": "/ɡoʊ əˈhed wɪð/",
+                                    "meaning": "~을 추진하다"
+                        },
+                        {
+                                    "word": "manage",
+                                    "ipa": "/ˈmænɪdʒ/",
+                                    "meaning": "어떻게든 해내다"
+                        },
+                        {
+                                    "word": "manpower",
+                                    "ipa": "/ˈmænpaʊər/",
+                                    "meaning": "인력"
+                        },
+                        {
+                                    "word": "get on board",
+                                    "ipa": "/ɡet ɑːn bɔːrd/",
+                                    "meaning": "합류시키다, 동참시키다"
+                        },
+                        {
+                                    "word": "funds",
+                                    "ipa": "/fʌndz/",
+                                    "meaning": "자금"
+                        }
+            ],
+            "211": [
+                        {
+                                    "word": "Let's just say",
+                                    "ipa": "/lets dʒʌst seɪ/",
+                                    "meaning": "그냥 ~라고만 해두자"
+                        },
+                        {
+                                    "word": "hear from",
+                                    "ipa": "/hɪr frʌm/",
+                                    "meaning": "~에게서 연락을 받다"
+                        },
+                        {
+                                    "word": "differences in opinion",
+                                    "ipa": "/ˈdɪfrənsɪz ɪn əˈpɪnjən/",
+                                    "meaning": "의견 차이"
+                        },
+                        {
+                                    "word": "go at it",
+                                    "ipa": "/ɡoʊ æt ɪt/",
+                                    "meaning": "싸우다, 격하게 하다"
+                        },
+                        {
+                                    "word": "heated",
+                                    "ipa": "/ˈhiːtɪd/",
+                                    "meaning": "격해진, 열띤"
+                        },
+                        {
+                                    "word": "reconcile",
+                                    "ipa": "/ˈrekənsaɪl/",
+                                    "meaning": "화해하다"
+                        },
+                        {
+                                    "word": "anytime soon",
+                                    "ipa": "/ˈeniˌtaɪm suːn/",
+                                    "meaning": "조만간, 당분간"
+                        }
+            ],
+            "212": [
+                        {
+                                    "word": "It's like saying",
+                                    "ipa": "/ɪts laɪk ˈseɪɪŋ/",
+                                    "meaning": "~라고 말하는 거나 마찬가지야"
+                        },
+                        {
+                                    "word": "responsibility",
+                                    "ipa": "/rɪˌspɑːnsəˈbɪləti/",
+                                    "meaning": "책임"
+                        },
+                        {
+                                    "word": "cheat on exams",
+                                    "ipa": "/tʃiːt ɑːn ɪɡˈzæmz/",
+                                    "meaning": "시험에서 부정행위를 하다"
+                        },
+                        {
+                                    "word": "bummed",
+                                    "ipa": "/bʌmd/",
+                                    "meaning": "실망한, 속상한"
+                        },
+                        {
+                                    "word": "work out",
+                                    "ipa": "/wɜːrk aʊt/",
+                                    "meaning": "잘 풀리다, 해결되다"
+                        },
+                        {
+                                    "word": "at least",
+                                    "ipa": "/æt liːst/",
+                                    "meaning": "적어도"
+                        },
+                        {
+                                    "word": "do one's best",
+                                    "ipa": "/duː wʌnz best/",
+                                    "meaning": "최선을 다하다"
+                        }
+            ],
+            "213": [
+                        {
+                                    "word": "to say the least",
+                                    "ipa": "/tə seɪ ðə liːst/",
+                                    "meaning": "과장하지 않고 말해도, 아무리 좋게 말해도"
+                        },
+                        {
+                                    "word": "weird",
+                                    "ipa": "/wɪrd/",
+                                    "meaning": "이상한"
+                        },
+                        {
+                                    "word": "upsetting",
+                                    "ipa": "/ʌpˈsetɪŋ/",
+                                    "meaning": "속상하게 하는"
+                        },
+                        {
+                                    "word": "horrible",
+                                    "ipa": "/ˈhɔːrəbl/",
+                                    "meaning": "끔찍한, 형편없는"
+                        },
+                        {
+                                    "word": "mad at",
+                                    "ipa": "/mæd æt/",
+                                    "meaning": "~에게 화난"
+                        },
+                        {
+                                    "word": "highly recommend",
+                                    "ipa": "/ˈhaɪli ˌrekəˈmend/",
+                                    "meaning": "강력 추천하다"
+                        },
+                        {
+                                    "word": "superb",
+                                    "ipa": "/suːˈpɜːrb/",
+                                    "meaning": "최고의, 훌륭한"
+                        },
+                        {
+                                    "word": "check it out",
+                                    "ipa": "/tʃek ɪt aʊt/",
+                                    "meaning": "가보다, 확인해 보다"
+                        }
+            ],
+            "214": [
+                        {
+                                    "word": "talk about how",
+                                    "ipa": "/tɔːk əˈbaʊt haʊ/",
+                                    "meaning": "얼마나/어떻게 ~한지 말하다"
+                        },
+                        {
+                                    "word": "special",
+                                    "ipa": "/ˈspeʃl/",
+                                    "meaning": "특별한"
+                        },
+                        {
+                                    "word": "good with women",
+                                    "ipa": "/ɡʊd wɪð ˈwɪmɪn/",
+                                    "meaning": "여자들에게 능숙한/인기 있는"
+                        },
+                        {
+                                    "word": "be done with",
+                                    "ipa": "/bi dʌn wɪð/",
+                                    "meaning": "~와 끝내다, 더 이상 안 하다"
+                        },
+                        {
+                                    "word": "hotshot",
+                                    "ipa": "/ˈhɑːtʃɑːt/",
+                                    "meaning": "잘나가는 사람"
+                        },
+                        {
+                                    "word": "quit",
+                                    "ipa": "/kwɪt/",
+                                    "meaning": "그만두다"
+                        },
+                        {
+                                    "word": "pursue",
+                                    "ipa": "/pərˈsuː/",
+                                    "meaning": "추구하다, 좇다"
+                        },
+                        {
+                                    "word": "What's with",
+                                    "ipa": "/wɑːts wɪð/",
+                                    "meaning": "~은 왜 그래?"
+                        },
+                        {
+                                    "word": "change one's mind",
+                                    "ipa": "/tʃeɪndʒ wʌnz maɪnd/",
+                                    "meaning": "마음을 바꾸다"
+                        }
+            ]
+};
+
+        const sentenceVocab = {};
+
+        function getVocabForQuestion(q) {
+            const patternItems = patternVocab[q.pattern] || [];
+            const sentenceItems = sentenceVocab[q.id] || [];
+            const seen = new Set();
+            const merged = [];
+
+            [...sentenceItems, ...patternItems].forEach(item => {
+                const key = item.word.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    merged.push(item);
+                }
+            });
+
+            return merged.slice(0, 5);
+        }
+
+        function renderVocabHtml(vocab) {
+            if (!vocab.length) return '';
+            return `
+                <div class="mt-3 pt-3 border-t border-indigo-100">
+                    <p class="text-xs font-semibold text-indigo-600 mb-2">📖 핵심 단어 · 숙어</p>
+                    <ul class="space-y-1.5">
+                        ${vocab.map(v => `
+                            <li class="text-sm leading-relaxed">
+                                <span class="font-semibold text-slate-800">${v.word}</span>
+                                <span class="text-slate-500 font-mono text-xs ml-1">${v.ipa}</span>
+                                <span class="text-slate-600"> — ${v.meaning}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        let questions = rawData.map((item, idx) => ({ ...item, id: idx, wrongCount: 0 }));
+        let currentDisplayList = [...questions];
+        let currentMode = "all";
+
+        function renderQuestions() {
+            const area = document.getElementById('content-area');
+            area.innerHTML = '';
+            
+            if (currentDisplayList.length === 0) {
+                area.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-xl border border-slate-200">
+                        <p class="text-slate-500 text-lg">조건에 맞는 문장이 없습니다. 5회 이상 틀린 문장이 아직 없거나 초기화되었습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            currentDisplayList.forEach((q) => {
+                const vocab = getVocabForQuestion(q);
+                const card = document.createElement('div');
+                card.className = "bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center transition-all hover:border-indigo-300";
+                
+                if (q.wrongCount >= 5) {
+                    card.className += " border-rose-300 bg-rose-50/30";
+                }
+
+                card.innerHTML = `
+                    <div class="flex-1 w-full">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="pattern-badge">Pattern ${q.pattern}</span>
+                            ${q.wrongCount >= 5 ? '<span class="bg-rose-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded">집중 복습</span>' : ''}
+                        </div>
+                        <p class="text-base font-semibold text-slate-800">${q.kr}</p>
+                    </div>
+
+                    <div class="w-full md:w-auto flex flex-col sm:flex-row gap-4 items-start sm:items-center md:justify-end">
+                        <div class="flex items-center bg-slate-100 border border-slate-200 rounded-lg p-1">
+                            <button onclick="changeCount(${q.id}, -1)" class="w-7 h-7 bg-white border border-slate-200 text-slate-600 rounded flex items-center justify-center font-bold hover:bg-slate-50 active:scale-95 transition text-xs">-</button>
+                            <span id="counter-val-${q.id}" class="px-3 font-bold text-sm ${q.wrongCount >= 5 ? 'text-rose-600' : 'text-slate-700'}">
+                                틀림: ${q.wrongCount}회
+                            </span>
+                            <button onclick="changeCount(${q.id}, 1)" class="w-7 h-7 bg-rose-500 text-white rounded flex items-center justify-center font-bold hover:bg-rose-600 active:scale-95 transition text-xs">+</button>
+                        </div>
+
+                        <div class="flex-1 sm:flex-initial w-full min-w-[260px] space-y-2">
+                            <div class="flex gap-2">
+                                <button onclick="toggleElement('hint-${q.id}')" class="flex-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 px-3 rounded-lg font-medium transition">
+                                    💡 힌트 보기
+                                </button>
+                                <button onclick="toggleElement('answer-${q.id}')" class="flex-1 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 py-1.5 px-3 rounded-lg font-medium transition">
+                                    ✅ 정답 확인
+                                </button>
+                            </div>
+                            <div id="hint-${q.id}" class="hidden-text text-sm text-indigo-600 font-mono italic bg-indigo-50/60 p-2 rounded-md border border-indigo-100">
+                                ${q.hint}
+                            </div>
+                            <div id="answer-${q.id}" class="hidden-text text-base font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 py-1 bg-slate-50/50 p-2 rounded-r-md">
+                                <p>${q.en}</p>
+                                ${renderVocabHtml(vocab)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                area.appendChild(card);
+            });
+        }
+
+        function changeCount(id, amount) {
+            const item = questions.find(q => q.id === id);
+            if (item) {
+                item.wrongCount = Math.max(0, item.wrongCount + amount);
+                
+                const label = document.getElementById(`counter-val-${id}`);
+                if (label) {
+                    label.innerText = `틀림: ${item.wrongCount}회`;
+                    if (item.wrongCount >= 5) {
+                        label.className = "px-3 font-bold text-sm text-rose-600";
+                    } else {
+                        label.className = "px-3 font-bold text-sm text-slate-700";
+                    }
+                }
+
+                if (currentMode === "filtered") {
+                    setTimeout(() => {
+                        filterHardQuestions();
+                    }, 400);
+                }
+            }
+        }
+
+        function shuffleQuestions() {
+            currentMode = "shuffled";
+            for (let i = currentDisplayList.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [currentDisplayList[i], currentDisplayList[j]] = [currentDisplayList[j], currentDisplayList[i]];
+            }
+            document.getElementById('filter-status').innerText = `현재 상태: 무작위 순서 섞기 완료 (${currentDisplayList.length}문장)`;
+            renderQuestions();
+        }
+
+        function showOriginalOrder() {
+            currentMode = "all";
+            currentDisplayList = [...questions].sort((a, b) => a.id - b.id);
+            document.getElementById('filter-status').innerText = "현재 상태: 원래 전체 순서 보기 (총 70문장)";
+            renderQuestions();
+        }
+
+        function filterHardQuestions() {
+            currentMode = "filtered";
+            currentDisplayList = questions.filter(q => q.wrongCount >= 5);
+            document.getElementById('filter-status').innerText = `현재 상태: ⚠️ 5회 이상 틀린 취약 문장만 보기 (${currentDisplayList.length}문장)`;
+            renderQuestions();
+        }
+
+        function resetAllCounts() {
+            if (confirm("모든 문장의 틀린 횟수 누적 데이터를 초기화하시겠습니까?")) {
+                questions.forEach(q => q.wrongCount = 0);
+                if (currentMode === "filtered") {
+                    currentDisplayList = [];
+                } else if (currentMode === "all") {
+                    currentDisplayList = [...questions].sort((a, b) => a.id - b.id);
+                }
+                renderQuestions();
+                alert("틀린 횟수가 모두 초기화되었습니다.");
+            }
+        }
+
+        function toggleElement(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.classList.contains('hidden-text')) {
+                    el.classList.remove('hidden-text');
+                    el.classList.add('visible-text');
+                } else {
+                    el.classList.remove('visible-text');
+                    el.classList.add('hidden-text');
+                }
+            }
+        }
+
+        renderQuestions();
+    </script>
+</body>
+</html>
