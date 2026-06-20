@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OPIc Unit 29 오답노트 학습기</title>
+    <title>Unit 29</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
@@ -11,17 +11,19 @@
         .hidden-text { display: none; }
         .visible-text { display: block; }
         .pattern-badge { background-color: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+        .speak-btn { display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; font-weight:700; padding:4px 9px; border-radius:999px; background:#e0f2fe; color:#0369a1; margin-left:8px; }
+        .speak-btn:hover { background:#bae6fd; }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-4xl mx-auto">
-        <a href="index.html" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 mb-4 transition">
+        <a href="./index.html" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-indigo-600 mb-4 transition">
             ← 메인으로 돌아가기
         </a>
 
         <header class="mb-8 text-center bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <h1 class="text-3xl font-bold text-slate-800 mb-2">OPIc Unit 29 학습기 (v2)</h1>
-            <p class="text-slate-600 mb-6">틀린 횟수를 체크하고, 5회 이상 틀린 취약 문장들을 집중적으로 복습해보세요!</p>
+            <h1 class="text-3xl font-bold text-slate-800 mb-2">Unit 29</h1>
+            <p class="text-slate-600 mb-6">틀린 횟수를 체크하고, 틀린 문장들을 모아서 정렬하며 복습해보세요!</p>
             
             <div class="flex flex-wrap justify-center gap-3">
                 <button onclick="shuffleQuestions()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
@@ -30,15 +32,45 @@
                 <button onclick="showOriginalOrder()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
                     📋 원래 전체 순서로 보기
                 </button>
-                <button onclick="filterHardQuestions()" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
-                    ⚠️ 5회 이상 틀린 문제만 보기
+                <button onclick="showWrongQuestions()" class="bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    ⚠️ 틀린 문장
+                </button>
+                <label class="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 font-semibold py-2 px-4 rounded-xl shadow-sm">
+                    <span>정렬</span>
+                    <select id="wrong-sort-select" onchange="sortWrongQuestions(this.value)" class="bg-white border border-amber-200 rounded-lg px-2 py-1 text-sm font-semibold text-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-300">
+                        <option value="original">원래 순서</option>
+                        <option value="desc">틀린 횟수 많은 순</option>
+                        <option value="asc">틀린 횟수 적은 순</option>
+                    </select>
+                </label>
+                <button onclick="startShadowingMode()" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
+                    🎤 쉐도잉 모드
                 </button>
                 <button onclick="resetAllCounts()" class="bg-slate-500 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-xl shadow-sm transition flex items-center gap-1">
                     🧹 카운트 전체 초기화
                 </button>
             </div>
             <div id="filter-status" class="mt-4 text-sm font-medium text-indigo-600">
-                현재 상태: 전체 항목 보기 (총 52문장)
+                현재 상태: 전체 항목 보기
+            </div>
+
+            <div id="shadowing-panel" class="hidden-text mt-5 text-left bg-purple-50 border border-purple-200 rounded-2xl p-4">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+                    <div>
+                        <p class="text-sm font-bold text-purple-700">🎤 쉐도잉 모드</p>
+                        <p id="shadowing-status" class="text-xs text-slate-500 mt-1">현재 화면의 문장들을 순서대로 듣고 따라 말합니다.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="playCurrentShadowing()" class="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1.5 px-3 rounded-lg transition">🔊 다시 듣기</button>
+                        <button onclick="nextShadowingSentence()" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1.5 px-3 rounded-lg transition">다음 문장 ▶</button>
+                        <button onclick="stopShadowingMode()" class="text-xs bg-slate-500 hover:bg-slate-600 text-white font-semibold py-1.5 px-3 rounded-lg transition">⏹ 종료</button>
+                    </div>
+                </div>
+                <div class="bg-white border border-purple-100 rounded-xl p-4">
+                    <p id="shadowing-kr" class="text-base font-semibold text-slate-800 mb-2"></p>
+                    <p id="shadowing-en" class="text-lg font-bold text-purple-800 mb-2"></p>
+                    <p id="shadowing-guide" class="text-sm text-slate-500">쉐도잉 시작 버튼을 누르면 현재 보고 있는 문장 목록으로 시작합니다.</p>
+                </div>
             </div>
         </header>
 
@@ -270,6 +302,45 @@
         let currentDisplayList = [...questions];
         let currentMode = "all";
 
+
+        function speakQuestion(id) {
+            const q = questions.find(item => item.id === id);
+            if (!q || !q.en) return;
+
+            if (!('speechSynthesis' in window)) {
+                alert('이 브라우저에서는 음성 읽기 기능을 지원하지 않습니다. Chrome 또는 삼성 인터넷으로 열어보세요.');
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(q.en);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.82;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => 
+                v.lang && v.lang.toLowerCase().startsWith('en') &&
+                /google|samantha|microsoft|english|us/i.test(v.name)
+            ) || voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function stopSpeaking() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+        }
+
         function renderQuestions() {
             const area = document.getElementById('content-area');
             area.innerHTML = '';
@@ -277,7 +348,7 @@
             if (currentDisplayList.length === 0) {
                 area.innerHTML = `
                     <div class="text-center py-12 bg-white rounded-xl border border-slate-200">
-                        <p class="text-slate-500 text-lg">조건에 맞는 문장이 없습니다. 5회 이상 틀린 문장이 아직 없거나 초기화되었습니다.</p>
+                        <p class="text-slate-500 text-lg">조건에 맞는 문장이 없습니다. 아직 1회 이상 틀린 문장이 없거나 초기화되었습니다.</p>
                     </div>
                 `;
                 return;
@@ -323,7 +394,11 @@
                                 ${q.hint}
                             </div>
                             <div id="answer-${q.id}" class="hidden-text text-base font-bold text-slate-900 border-l-4 border-indigo-500 pl-3 py-1 bg-slate-50/50 p-2 rounded-r-md">
-                                <p>${q.en}</p>
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <p class="flex-1">${q.en}</p>
+                                    <button onclick="speakQuestion(${q.id})" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-1.5 px-3 rounded-lg transition shadow-sm">🔊 듣기</button>
+                                    <button onclick="stopSpeaking()" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1.5 px-3 rounded-lg transition">⏹ 정지</button>
+                                </div>
                                 ${renderVocabHtml(vocab)}
                             </div>
                         </div>
@@ -333,31 +408,54 @@
             });
         }
 
+
+        let wrongSortOrder = "original";
+
+        function setInitialStatus() {
+            const status = document.getElementById('filter-status');
+            if (status) status.innerText = `현재 상태: 전체 항목 보기 (총 ${questions.length}문장)`;
+        }
+
+        function sortWrongList(list, order) {
+            const copied = [...list];
+            if (order === "desc") {
+                copied.sort((a, b) => (b.wrongCount - a.wrongCount) || (a.id - b.id));
+            } else if (order === "asc") {
+                copied.sort((a, b) => (a.wrongCount - b.wrongCount) || (a.id - b.id));
+            } else {
+                copied.sort((a, b) => a.id - b.id);
+            }
+            return copied;
+        }
+
+        function getSortLabel(order) {
+            if (order === "desc") return "틀린 횟수 많은 순";
+            if (order === "asc") return "틀린 횟수 적은 순";
+            return "원래 순서";
+        }
+
         function changeCount(id, amount) {
             const item = questions.find(q => q.id === id);
             if (item) {
                 item.wrongCount = Math.max(0, item.wrongCount + amount);
-                
+
                 const label = document.getElementById(`counter-val-${id}`);
                 if (label) {
                     label.innerText = `틀림: ${item.wrongCount}회`;
-                    if (item.wrongCount >= 5) {
-                        label.className = "px-3 font-bold text-sm text-rose-600";
-                    } else {
-                        label.className = "px-3 font-bold text-sm text-slate-700";
-                    }
+                    label.className = item.wrongCount >= 5
+                        ? "px-3 font-bold text-sm text-rose-600"
+                        : "px-3 font-bold text-sm text-slate-700";
                 }
 
-                if (currentMode === "filtered") {
-                    setTimeout(() => {
-                        filterHardQuestions();
-                    }, 400);
+                if (currentMode === "wrong") {
+                    setTimeout(() => showWrongQuestions(wrongSortOrder), 250);
                 }
             }
         }
 
         function shuffleQuestions() {
             currentMode = "shuffled";
+            currentDisplayList = [...currentDisplayList];
             for (let i = currentDisplayList.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [currentDisplayList[i], currentDisplayList[j]] = [currentDisplayList[j], currentDisplayList[i]];
@@ -369,24 +467,41 @@
         function showOriginalOrder() {
             currentMode = "all";
             currentDisplayList = [...questions].sort((a, b) => a.id - b.id);
-            document.getElementById('filter-status').innerText = "현재 상태: 원래 전체 순서 보기 (총 52문장)";
+            document.getElementById('filter-status').innerText = `현재 상태: 원래 전체 순서 보기 (총 ${questions.length}문장)`;
             renderQuestions();
         }
 
-        function filterHardQuestions() {
-            currentMode = "filtered";
-            currentDisplayList = questions.filter(q => q.wrongCount >= 5);
-            document.getElementById('filter-status').innerText = `현재 상태: ⚠️ 5회 이상 틀린 취약 문장만 보기 (${currentDisplayList.length}문장)`;
+        function showWrongQuestions(order = wrongSortOrder) {
+            currentMode = "wrong";
+            wrongSortOrder = order;
+
+            const select = document.getElementById('wrong-sort-select');
+            if (select) select.value = wrongSortOrder;
+
+            const wrongList = questions.filter(q => q.wrongCount >= 1);
+            currentDisplayList = sortWrongList(wrongList, wrongSortOrder);
+
+            document.getElementById('filter-status').innerText =
+                `현재 상태: ⚠️ 틀린 문장 (${currentDisplayList.length}문장) · 정렬: ${getSortLabel(wrongSortOrder)}`;
             renderQuestions();
+        }
+
+        function sortWrongQuestions(order) {
+            wrongSortOrder = order;
+            showWrongQuestions(wrongSortOrder);
         }
 
         function resetAllCounts() {
             if (confirm("모든 문장의 틀린 횟수 누적 데이터를 초기화하시겠습니까?")) {
                 questions.forEach(q => q.wrongCount = 0);
-                if (currentMode === "filtered") {
+                if (currentMode === "wrong") {
                     currentDisplayList = [];
-                } else if (currentMode === "all") {
+                    document.getElementById('filter-status').innerText =
+                        `현재 상태: ⚠️ 틀린 문장 (0문장) · 정렬: ${getSortLabel(wrongSortOrder)}`;
+                } else {
+                    currentMode = "all";
                     currentDisplayList = [...questions].sort((a, b) => a.id - b.id);
+                    setInitialStatus();
                 }
                 renderQuestions();
                 alert("틀린 횟수가 모두 초기화되었습니다.");
@@ -406,7 +521,151 @@
             }
         }
 
+        function speakTextById(id) {
+            const item = questions.find(q => q.id === id);
+            if (!item) return;
+            speakText(item.en);
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) {
+                alert('이 브라우저에서는 음성 읽기 기능을 지원하지 않습니다. Chrome 또는 삼성 인터넷을 사용해보세요.');
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.85;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            const voices = window.speechSynthesis.getVoices();
+            const englishVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-us')) || voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+            if (englishVoice) utterance.voice = englishVoice;
+            window.speechSynthesis.speak(utterance);
+        }
+
+
+        let shadowingList = [];
+        let shadowingIndex = 0;
+        let shadowingActive = false;
+        let shadowingTimer = null;
+
+        function getShadowingSourceList() {
+            const list = currentDisplayList && currentDisplayList.length ? currentDisplayList : questions;
+            return [...list];
+        }
+
+        function showShadowingPanel() {
+            const panel = document.getElementById('shadowing-panel');
+            if (panel) {
+                panel.classList.remove('hidden-text');
+                panel.classList.add('visible-text');
+                panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function startShadowingMode() {
+            shadowingList = getShadowingSourceList();
+            if (!shadowingList.length) {
+                alert('쉐도잉할 문장이 없습니다. 전체 문장 보기 또는 틀린 문장 보기에서 다시 시도해보세요.');
+                return;
+            }
+            shadowingIndex = 0;
+            shadowingActive = true;
+            showShadowingPanel();
+            renderShadowingSentence();
+            playCurrentShadowing();
+        }
+
+        function renderShadowingSentence() {
+            const q = shadowingList[shadowingIndex];
+            const total = shadowingList.length;
+            const status = document.getElementById('shadowing-status');
+            const kr = document.getElementById('shadowing-kr');
+            const en = document.getElementById('shadowing-en');
+            const guide = document.getElementById('shadowing-guide');
+            if (!q) return;
+            if (status) status.innerText = `문장 ${shadowingIndex + 1} / ${total}`;
+            if (kr) kr.innerText = q.kr;
+            if (en) en.innerText = q.en;
+            if (guide) guide.innerText = '먼저 듣고, 음성이 끝나면 5초 동안 바로 따라 말해보세요.';
+        }
+
+        function playCurrentShadowing() {
+            if (!shadowingActive || !shadowingList.length) {
+                startShadowingMode();
+                return;
+            }
+            const q = shadowingList[shadowingIndex];
+            if (!q) return;
+            clearTimeout(shadowingTimer);
+            renderShadowingSentence();
+            speakForShadowing(q.en, () => startShadowingCountdown(5));
+        }
+
+        function speakForShadowing(text, onEnd) {
+            if (!('speechSynthesis' in window)) {
+                alert('이 브라우저에서는 음성 읽기 기능을 지원하지 않습니다. Chrome 또는 삼성 인터넷으로 열어보세요.');
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.82;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v =>
+                v.lang && v.lang.toLowerCase().startsWith('en') &&
+                /google|samantha|microsoft|english|us/i.test(v.name)
+            ) || voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+            if (preferredVoice) utterance.voice = preferredVoice;
+            utterance.onend = () => { if (shadowingActive && typeof onEnd === 'function') onEnd(); };
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function startShadowingCountdown(seconds) {
+            const guide = document.getElementById('shadowing-guide');
+            let remain = seconds;
+            const tick = () => {
+                if (!shadowingActive) return;
+                if (guide) guide.innerText = `🎤 지금 따라 말해보세요. ${remain}초 후 다음 문장으로 넘어갑니다.`;
+                if (remain <= 0) {
+                    nextShadowingSentence();
+                    return;
+                }
+                remain -= 1;
+                shadowingTimer = setTimeout(tick, 1000);
+            };
+            tick();
+        }
+
+        function nextShadowingSentence() {
+            if (!shadowingActive || !shadowingList.length) return;
+            clearTimeout(shadowingTimer);
+            if (shadowingIndex >= shadowingList.length - 1) {
+                const guide = document.getElementById('shadowing-guide');
+                if (guide) guide.innerText = '✅ 쉐도잉 완료! 다시 시작하려면 쉐도잉 모드 버튼을 눌러주세요.';
+                stopSpeaking();
+                shadowingActive = false;
+                return;
+            }
+            shadowingIndex += 1;
+            renderShadowingSentence();
+            playCurrentShadowing();
+        }
+
+        function stopShadowingMode() {
+            shadowingActive = false;
+            clearTimeout(shadowingTimer);
+            stopSpeaking();
+            const guide = document.getElementById('shadowing-guide');
+            if (guide) guide.innerText = '쉐도잉 모드가 종료되었습니다.';
+        }
+
+
+        setInitialStatus();
         renderQuestions();
-    </script>
+</script>
 </body>
 </html>
