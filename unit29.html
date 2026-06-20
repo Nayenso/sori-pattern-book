@@ -309,9 +309,32 @@
             `;
         }
 
+        const WRONG_COUNT_STORAGE_KEY = `soriPatternBookWrongCounts:${document.title}`;
         let questions = rawData.map((item, idx) => ({ ...item, id: idx, wrongCount: 0 }));
+        loadWrongCounts();
         let currentDisplayList = [...questions];
         let currentMode = "all";
+
+        function loadWrongCounts() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(WRONG_COUNT_STORAGE_KEY) || '{}');
+                questions.forEach(q => {
+                    if (saved[q.id] !== undefined) {
+                        q.wrongCount = Math.max(0, Number(saved[q.id]) || 0);
+                    }
+                });
+            } catch (e) {
+                console.warn('틀린 횟수 저장 데이터를 불러오지 못했습니다.', e);
+            }
+        }
+
+        function saveWrongCounts() {
+            const counts = {};
+            questions.forEach(q => {
+                if (q.wrongCount > 0) counts[q.id] = q.wrongCount;
+            });
+            localStorage.setItem(WRONG_COUNT_STORAGE_KEY, JSON.stringify(counts));
+        }
 
 
         function speakQuestion(id) {
@@ -359,7 +382,7 @@
             if (currentDisplayList.length === 0) {
                 area.innerHTML = `
                     <div class="text-center py-12 bg-white rounded-xl border border-slate-200">
-                        <p class="text-slate-500 text-lg">조건에 맞는 문장이 없습니다. 아직 1회 이상 틀린 문장이 없거나 초기화되었습니다.</p>
+                        <p class="text-slate-500 text-lg">조건에 맞는 문장이 없습니다. 아직 틀린 문장이 없거나 초기화되었습니다.</p>
                     </div>
                 `;
                 return;
@@ -449,6 +472,7 @@
             const item = questions.find(q => q.id === id);
             if (item) {
                 item.wrongCount = Math.max(0, item.wrongCount + amount);
+                saveWrongCounts();
 
                 const label = document.getElementById(`counter-val-${id}`);
                 if (label) {
@@ -505,6 +529,7 @@
         function resetAllCounts() {
             if (confirm("모든 문장의 틀린 횟수 누적 데이터를 초기화하시겠습니까?")) {
                 questions.forEach(q => q.wrongCount = 0);
+                localStorage.removeItem(WRONG_COUNT_STORAGE_KEY);
                 if (currentMode === "wrong") {
                     currentDisplayList = [];
                     document.getElementById('filter-status').innerText =
